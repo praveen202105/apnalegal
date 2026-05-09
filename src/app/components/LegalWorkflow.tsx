@@ -40,6 +40,7 @@ interface DocConfig {
   steps: string[];
   defaultFormData: FormData;
   autofillData: FormData;
+  requiredFields?: Record<number, string[]>;
   renderStep: (step: number, formData: FormData, onChange: (field: string, value: string) => void) => React.ReactNode;
   summary: (formData: FormData) => string;
 }
@@ -49,6 +50,11 @@ function rentAgreementConfig(): DocConfig {
     steps: ['Basic Details', 'Property Info', 'Terms & Conditions'],
     defaultFormData: { landlordName: '', tenantName: '', propertyAddress: '', monthlyRent: '', securityDeposit: '', tenurePeriod: '', startDate: '', city: '', state: '' },
     autofillData: { landlordName: 'Rajesh Kumar', tenantName: 'Amit Sharma', propertyAddress: '123, MG Road, Apartment 4B', monthlyRent: '25000', securityDeposit: '50000', tenurePeriod: '11', startDate: '2026-06-01', city: 'Mumbai', state: 'Maharashtra' },
+    requiredFields: {
+      0: ['landlordName', 'tenantName', 'propertyAddress'],
+      1: ['monthlyRent', 'securityDeposit', 'city', 'state'],
+      2: ['tenurePeriod', 'startDate'],
+    },
     renderStep: (step, formData, onChange) => {
       if (step === 0) return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
@@ -88,6 +94,10 @@ function affidavitConfig(): DocConfig {
     steps: ['Personal Details', 'Statement Content', 'Review & Confirm'],
     defaultFormData: { deponentName: '', fatherName: '', age: '', occupation: '', address: '', purpose: '', statement: '', city: '', state: '' },
     autofillData: { deponentName: 'Suresh Patel', fatherName: 'Ramesh Patel', age: '35', occupation: 'Software Engineer', address: '45, Nehru Nagar, Flat 2C, Bangalore', purpose: 'Name Change', statement: 'I, Suresh Patel, do hereby solemnly affirm and declare that I am also known as Suresh Kumar Patel and that both names refer to the same person, namely myself.', city: 'Bangalore', state: 'Karnataka' },
+    requiredFields: {
+      0: ['deponentName', 'fatherName', 'age', 'address'],
+      1: ['purpose', 'statement', 'city', 'state'],
+    },
     renderStep: (step, formData, onChange) => {
       if (step === 0) return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
@@ -131,6 +141,11 @@ function legalNoticeConfig(): DocConfig {
     steps: ['Sender Details', 'Recipient Details', 'Notice Content'],
     defaultFormData: { senderName: '', senderAddress: '', senderPhone: '', senderEmail: '', recipientName: '', recipientAddress: '', subject: '', description: '', demandAmount: '', deadline: '' },
     autofillData: { senderName: 'Priya Mehta', senderAddress: '78, Link Road, Bandra West, Mumbai 400050', senderPhone: '9876543210', senderEmail: 'priya.mehta@email.com', recipientName: 'XYZ Builders Pvt. Ltd.', recipientAddress: '101, Commercial Tower, Andheri East, Mumbai 400069', subject: 'Non-refund of booking amount', description: 'You have failed to refund the booking amount of ₹2,00,000 paid on 15-Jan-2026 for apartment unit #302, despite repeated requests and cancellation due to project delay exceeding 24 months.', demandAmount: '200000', deadline: '15' },
+    requiredFields: {
+      0: ['senderName', 'senderAddress', 'senderPhone', 'senderEmail'],
+      1: ['recipientName', 'recipientAddress'],
+      2: ['subject', 'description', 'demandAmount', 'deadline'],
+    },
     renderStep: (step, formData, onChange) => {
       if (step === 0) return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
@@ -164,6 +179,11 @@ function consumerComplaintConfig(): DocConfig {
     steps: ['Your Details', 'Opposite Party', 'Complaint Details'],
     defaultFormData: { complainantName: '', complainantAddress: '', phone: '', email: '', companyName: '', companyAddress: '', productService: '', purchaseDate: '', amount: '', defectDescription: '', reliefSought: '' },
     autofillData: { complainantName: 'Anil Verma', complainantAddress: '22, Gandhi Nagar, Jaipur 302015', phone: '9988776655', email: 'anil.verma@email.com', companyName: 'QuickMart Online Pvt. Ltd.', companyAddress: 'Tower B, Cyber City, Gurugram 122002', productService: 'Refrigerator (Model XYZ-500)', purchaseDate: '2026-01-10', amount: '45000', defectDescription: 'The refrigerator stopped cooling within 2 months of purchase. The company denies warranty repair, claiming misuse, which is incorrect.', reliefSought: 'Replacement with new unit or full refund of ₹45,000 plus compensation for food spoilage loss of ₹5,000.' },
+    requiredFields: {
+      0: ['complainantName', 'complainantAddress', 'phone', 'email'],
+      1: ['companyName', 'companyAddress', 'productService'],
+      2: ['purchaseDate', 'amount', 'defectDescription', 'reliefSought'],
+    },
     renderStep: (step, formData, onChange) => {
       if (step === 0) return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
@@ -198,6 +218,11 @@ function firHelpConfig(): DocConfig {
     steps: ['Incident Details', 'Your Information', 'Description & Evidence'],
     defaultFormData: { incidentType: '', incidentDate: '', incidentTime: '', incidentPlace: '', victimName: '', victimAddress: '', phone: '', accusedName: '', accusedAddress: '', description: '', witnesses: '', evidence: '' },
     autofillData: { incidentType: 'Theft', incidentDate: '2026-05-01', incidentTime: '22:30', incidentPlace: 'Sector 18 Market, Noida, UP', victimName: 'Deepak Sharma', victimAddress: '55, Sector 21, Noida 201301', phone: '9812345678', accusedName: 'Unknown (2 persons on motorcycle)', accusedAddress: 'Unknown', description: 'On the night of 1st May 2026 at approximately 10:30 PM, two unknown persons on a motorcycle snatched my mobile phone (iPhone 15, IMEI: 123456789) and bag containing cash ₹8,000 near Sector 18 market. They fled toward the expressway.', witnesses: 'Shop owner Mr. Ramesh (contact: 9876543210) was present nearby.', evidence: 'CCTV footage from nearby shops, bank ATM camera, mobile IMEI number: 123456789' },
+    requiredFields: {
+      0: ['incidentType', 'incidentDate', 'incidentPlace'],
+      1: ['victimName', 'victimAddress', 'phone'],
+      2: ['description'],
+    },
     renderStep: (step, formData, onChange) => {
       if (step === 0) return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
@@ -257,14 +282,6 @@ export default function LegalWorkflow() {
 
   const [formData, setFormData] = useState<FormData>(config.defaultFormData);
 
-  const handleNext = () => {
-    if (activeStep === config.steps.length - 1) {
-      setShowConfirmDialog(true);
-    } else {
-      setActiveStep((prev) => prev + 1);
-    }
-  };
-
   const handleBack = () => setActiveStep((prev) => prev - 1);
 
   const handleSaveDraft = async () => {
@@ -282,8 +299,8 @@ export default function LegalWorkflow() {
     setError('');
     try {
       const doc = await createDocument(type || 'unknown', formData);
-      const generated = await generateDocument(doc._id);
-      navigate(`/document/${generated._id}`);
+      const result = await generateDocument(doc._id);
+      navigate(`/document/${result.document._id}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Generation failed. Please try again.');
     } finally {
@@ -298,6 +315,38 @@ export default function LegalWorkflow() {
   const handleAIAutofill = () => {
     setFormData(config.autofillData);
     setSnackbar({ open: true, message: 'AI autofill applied — review and edit as needed' });
+  };
+
+  const validateStep = (): string | null => {
+    const required = config.requiredFields?.[activeStep] ?? [];
+    for (const field of required) {
+      const val = (formData[field] ?? '').trim();
+      if (!val) {
+        const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
+        return `"${label}" is required`;
+      }
+      if (['phone', 'senderPhone'].includes(field) && !/^\d{10}$/.test(val)) {
+        return 'Phone number must be exactly 10 digits';
+      }
+      if (['email', 'senderEmail'].includes(field) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+        return 'Please enter a valid email address';
+      }
+      if (['monthlyRent', 'securityDeposit', 'tenurePeriod', 'age', 'amount', 'demandAmount', 'deadline'].includes(field) && (isNaN(Number(val)) || Number(val) <= 0)) {
+        const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
+        return `"${label}" must be a positive number`;
+      }
+    }
+    return null;
+  };
+
+  const handleNext = () => {
+    const err = validateStep();
+    if (err) { setSnackbar({ open: true, message: err }); return; }
+    if (activeStep === config.steps.length - 1) {
+      setShowConfirmDialog(true);
+    } else {
+      setActiveStep((prev) => prev + 1);
+    }
   };
 
   return (
