@@ -128,8 +128,8 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
   const doc = await DocumentModel.findOne({ _id: req.params.id, userId: req.userId });
   if (!doc) { res.status(404).json({ message: 'Document not found' }); return; }
 
-  const pdfPath = await generatePdf(doc.type, doc.formData, doc._id.toString());
-  doc.pdfPath = pdfPath;
+  const pdfBuffer = await generatePdf(doc.type, doc.formData, doc._id.toString());
+  doc.pdfBuffer = pdfBuffer;
   doc.status = 'generated';
   await doc.save();
 
@@ -141,7 +141,7 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
     message: `Your ${doc.title} is ready for download`,
   });
 
-  res.json({ message: 'Document generated successfully', document: doc });
+  res.json({ message: 'Document generated successfully', document: { ...doc.toObject(), pdfBuffer: undefined } });
 });
 
 // GET /documents/:id/download  — also accepts ?token= for browser download links
@@ -159,7 +159,14 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
   }
   const doc = await DocumentModel.findOne({ _id: req.params.id, userId: req.userId });
   if (!doc) { res.status(404).json({ message: 'Document not found' }); return; }
-  if (!doc.pdfPath) {
+  
+  // Backward compatibility: serve from legacy pdfPath if it exists and pdfBuffer doesn't
+  if (!doc.pdfBuffer && doc.pdfPath && doc.pdfPath.startsWith('http')) {
+    res.redirect(doc.pdfPath);
+    return;
+  }
+
+  if (!doc.pdfBuffer) {
     res.status(400).json({ message: 'PDF not yet generated. Call /generate first.' });
     return;
   }
@@ -167,18 +174,7 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
   const filename = `${doc.title.replace(/\s+/g, '_')}.pdf`;
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-
-  if (doc.pdfPath.startsWith('http')) {
-    // Redirect directly to the Cloudinary URL to let the browser handle it and save backend bandwidth
-    res.redirect(doc.pdfPath);
-    return;
-  } else {
-    if (!fs.existsSync(doc.pdfPath)) {
-      res.status(400).json({ message: 'PDF file missing on server.' });
-      return;
-    }
-    fs.createReadStream(doc.pdfPath).pipe(res);
-  }
+  res.end(doc.pdfBuffer);
 });
 
 export default router;

@@ -34,8 +34,6 @@ function formatDate(dateStr?: string): string {
   }
 }
 
-import { v2 as cloudinary } from 'cloudinary';
-
 function drawPageBorderAndHeader(doc: PDFKit.PDFDocument, docType: string) {
   // Draw premium border
   doc.rect(30, 30, 552, 732).lineWidth(2).stroke('#1a365d'); // Outer thick border
@@ -60,20 +58,14 @@ export async function generatePdf(
   docType: string,
   formData: FormData,
   docId: string
-): Promise<string> {
+): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 60, size: 'A4' });
+    const chunks: Buffer[] = [];
     
-    const stream = cloudinary.uploader.upload_stream(
-      { resource_type: 'raw', public_id: `nyayai_docs/${docId}.pdf` },
-      (error, result) => {
-        if (error) return reject(error);
-        if (result) return resolve(result.secure_url);
-        reject(new Error('Upload to Cloudinary failed'));
-      }
-    );
-    
-    doc.pipe(stream);
+    doc.on('data', (chunk) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
 
     drawPageBorderAndHeader(doc, docType);
 

@@ -6,7 +6,8 @@ export interface IDocument extends Document {
   title: string;
   formData: Record<string, string>;
   status: 'draft' | 'generated';
-  pdfPath: string;
+  pdfPath: string; // Legacy fallback
+  pdfBuffer?: Buffer; // Native mongo storage
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,6 +20,7 @@ const DocumentSchema = new Schema<IDocument>(
     formData: { type: Schema.Types.Mixed, default: {} },
     status: { type: String, enum: ['draft', 'generated'], default: 'draft' },
     pdfPath: { type: String, default: '' },
+    pdfBuffer: { type: Buffer },
   },
   { timestamps: true }
 );
