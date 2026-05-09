@@ -18,6 +18,15 @@ router.post('/send-otp', async (req: Request, res: Response) => {
   }
 
   const { phone } = parsed.data;
+
+  // Check if a valid OTP already exists for this phone
+  const existingRecord = await Otp.findOne({ phone, expiresAt: { $gt: new Date() } });
+  if (existingRecord) {
+    await sendOtp(phone, existingRecord.otp);
+    res.json({ message: 'OTP sent successfully' });
+    return;
+  }
+
   const otp = generateOtp();
   const expiresAt = otpExpiresAt();
 
