@@ -5,11 +5,28 @@ import Otp from '../models/Otp';
 import { generateOtp, otpExpiresAt, sendOtp } from '../utils/otp';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import rateLimit from 'express-rate-limit';
 
 const router = Router();
 
+// Rate limiter: Max 3 OTP requests per 15 minutes per IP
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 3,
+  message: { message: 'Too many OTP requests from this IP, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiter: Max 10 Google login attempts per 15 minutes per IP
+const googleAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { message: 'Too many login attempts, please try again later' },
+});
+
 // POST /auth/send-otp
-router.post('/send-otp', async (req: Request, res: Response) => {
+router.post('/send-otp', otpLimiter, async (req: Request, res: Response) => {
   const schema = z.object({ phone: z.string().min(10).max(15) });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
@@ -119,7 +136,7 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
 });
 
 // POST /auth/google
-router.post('/google', async (req: Request, res: Response) => {
+router.post('/google', googleAuthLimiter, async (req: Request, res: Response) => {
   const schema = z.object({ googleToken: z.string() });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
