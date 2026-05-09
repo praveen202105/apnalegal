@@ -45,6 +45,10 @@ export default function SettingsScreen() {
   const savePrefs = useCallback(async (update: Partial<Prefs>) => {
     const next = { ...prefs, ...update };
     setPrefs(next);
+    if ('darkMode' in update) {
+      localStorage.setItem('darkMode', String(update.darkMode));
+      window.dispatchEvent(new CustomEvent('darkModeChange', { detail: update.darkMode }));
+    }
     try {
       await updatePreferences(next);
       setSnackbar({ open: true, message: 'Preference saved' });
