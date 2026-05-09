@@ -53,6 +53,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 
 // GET /documents/:id
 router.get('/:id', async (req: AuthRequest, res: Response) => {
+  if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) { res.status(400).json({ message: 'Invalid ID format' }); return; }
   const doc = await DocumentModel.findOne({ _id: req.params.id, userId: req.userId });
   if (!doc) { res.status(404).json({ message: 'Document not found' }); return; }
   res.json(doc);

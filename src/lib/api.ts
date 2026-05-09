@@ -120,8 +120,10 @@ export const getDocument = (id: string) =>
     `/documents/${id}`
   );
 
-export const generateDocument = (id: string) =>
-  json<{ _id: string; status: string; pdfPath: string }>(`/documents/${id}/generate`, { method: 'POST' });
+export const generateDocument = async (id: string) => {
+  const res = await json<{ document: { _id: string; status: string; pdfPath: string } }>(`/documents/${id}/generate`, { method: 'POST' });
+  return res.document;
+};
 
 export const downloadDocumentUrl = (id: string) => `${BASE_URL}/documents/${id}/download?token=${getAccessToken()}`;
 
