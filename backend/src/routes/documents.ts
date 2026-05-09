@@ -130,6 +130,7 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
 
   const pdfBuffer = await generatePdf(doc.type, doc.formData, doc._id.toString());
   doc.pdfBuffer = pdfBuffer;
+  doc.pdfPath = ''; // Clear old Cloudinary path
   doc.status = 'generated';
   await doc.save();
 
@@ -141,10 +142,14 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
     message: `Your ${doc.title} is ready for download`,
   });
 
-  res.json({ message: 'Document generated successfully', document: { ...doc.toObject(), pdfBuffer: undefined } });
+  res.json({
+    message: 'Document generated successfully',
+    document: { ...doc.toObject(), pdfBuffer: undefined },
+    pdfBase64: pdfBuffer.toString('base64'),
+  });
 });
 
-// GET /documents/:id/download  — also accepts ?token= for browser download links
+// GET /documents/:id/download  — returns PDF binary directly
 router.get('/:id/download', async (req: AuthRequest, res: Response) => {
   // Allow token via query string so browser <a href> downloads work
   if (!req.userId && req.query.token) {
@@ -159,21 +164,20 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
   }
   const doc = await DocumentModel.findOne({ _id: req.params.id, userId: req.userId });
   if (!doc) { res.status(404).json({ message: 'Document not found' }); return; }
-  
-  // Backward compatibility: serve from legacy pdfPath if it exists and pdfBuffer doesn't
-  if (!doc.pdfBuffer && doc.pdfPath && doc.pdfPath.startsWith('http')) {
-    res.redirect(doc.pdfPath);
-    return;
-  }
 
+  // Regenerate if we have no buffer (e.g. old docs that had Cloudinary path)
   if (!doc.pdfBuffer) {
-    res.status(400).json({ message: 'PDF not yet generated. Call /generate first.' });
-    return;
+    const pdfBuffer = await generatePdf(doc.type, doc.formData, doc._id.toString());
+    doc.pdfBuffer = pdfBuffer;
+    doc.pdfPath = '';
+    doc.status = 'generated';
+    await doc.save();
   }
 
   const filename = `${doc.title.replace(/\s+/g, '_')}.pdf`;
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Content-Length', doc.pdfBuffer.length.toString());
   res.end(doc.pdfBuffer);
 });
 

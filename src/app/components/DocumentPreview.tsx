@@ -60,13 +60,43 @@ export default function DocumentPreview() {
     }
   };
 
-  const handleDownload = () => {
+  const triggerBlobDownload = (base64: string, filename: string) => {
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownload = async () => {
     if (!doc) return;
     if (doc.status !== 'generated') {
       setSnackbar({ open: true, message: 'Generate the document first' });
       return;
     }
-    window.open(downloadDocumentUrl(doc._id), '_blank');
+    try {
+      const token = localStorage.getItem('accessToken');
+      const BASE_URL = import.meta.env.VITE_API_URL || 'https://nyayai-backend.onrender.com';
+      const res = await fetch(`${BASE_URL}/documents/${doc._id}/download?token=${token}`);
+      if (!res.ok) throw new Error('Download failed');
+      const arrayBuffer = await res.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${doc.type}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      setSnackbar({ open: true, message: 'Download failed. Please try again.' });
+    }
   };
 
   const handleGenerate = async () => {
@@ -74,8 +104,12 @@ export default function DocumentPreview() {
     setGenerating(true);
     try {
       const updated = await generateDocument(doc._id);
-      setDoc((prev) => prev ? { ...prev, status: updated.status, pdfPath: updated.pdfPath } : prev);
-      setSnackbar({ open: true, message: 'Document generated! Ready to download.' });
+      setDoc((prev) => prev ? { ...prev, status: updated.document.status } : prev);
+      setSnackbar({ open: true, message: 'Document generated! Starting download...' });
+      // Auto-download using returned base64
+      if (updated.pdfBase64) {
+        triggerBlobDownload(updated.pdfBase64, `${doc.type}.pdf`);
+      }
     } catch (err: unknown) {
       setSnackbar({ open: true, message: err instanceof Error ? err.message : 'Generation failed' });
     } finally {
