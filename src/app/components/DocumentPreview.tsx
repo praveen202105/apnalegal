@@ -79,23 +79,20 @@ export default function DocumentPreview() {
       setSnackbar({ open: true, message: 'Generate the document first' });
       return;
     }
+    setGenerating(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      const BASE_URL = import.meta.env.VITE_API_URL || 'https://nyayai-backend.onrender.com';
-      const res = await fetch(`${BASE_URL}/documents/${doc._id}/download?token=${token}`);
-      if (!res.ok) throw new Error('Download failed');
-      const arrayBuffer = await res.arrayBuffer();
-      const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${doc.type}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Re-generate to get fresh base64 — avoids binary CORS streaming issues
+      const result = await generateDocument(doc._id);
+      if (result.pdfBase64) {
+        triggerBlobDownload(result.pdfBase64, `${doc.type}.pdf`);
+        setSnackbar({ open: true, message: 'PDF downloaded successfully!' });
+      } else {
+        throw new Error('No PDF data returned');
+      }
     } catch {
       setSnackbar({ open: true, message: 'Download failed. Please try again.' });
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -231,9 +228,9 @@ export default function DocumentPreview() {
             fullWidth
             sx={{ py: 1.5 }}
             onClick={handleDownload}
-            disabled={!doc || doc.status !== 'generated'}
+            disabled={!doc || doc.status !== 'generated' || generating}
           >
-            Download PDF
+            {generating ? 'Preparing Download...' : 'Download PDF'}
           </Button>
           <Button
             variant="outlined"
