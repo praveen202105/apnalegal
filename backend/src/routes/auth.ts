@@ -83,7 +83,7 @@ router.post('/google', async (req: Request, res: Response) => {
     });
     
     if (!response.ok) throw new Error('Invalid token');
-    const payload = await response.json();
+    const payload = (await response.json()) as { email?: string; name?: string };
     
     if (!payload.email) throw new Error('No email found in Google profile');
 
