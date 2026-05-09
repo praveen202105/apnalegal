@@ -28,8 +28,16 @@ import LocalPoliceIcon from '@mui/icons-material/LocalPolice';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good Morning';
+  if (hour < 17) return 'Good Afternoon';
+  return 'Good Evening';
+}
+
 export default function HomeDashboard() {
   const [bottomNavValue, setBottomNavValue] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
   const quickActions = [
@@ -118,7 +126,7 @@ export default function HomeDashboard() {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Box>
             <Typography variant="body2" sx={{ opacity: 0.9, mb: 0.5 }}>
-              Good Morning
+              {getGreeting()}
             </Typography>
             <Typography variant="h5" sx={{ fontWeight: 700 }}>
               Welcome Back!
@@ -140,6 +148,13 @@ export default function HomeDashboard() {
         <TextField
           fullWidth
           placeholder="What legal help do you need?"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && searchQuery.trim()) {
+              navigate(`/ai-assistant?q=${encodeURIComponent(searchQuery.trim())}`);
+            }
+          }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -273,34 +288,47 @@ export default function HomeDashboard() {
           ))}
         </Box>
 
-        {upcomingConsultations.length > 0 && (
-          <>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Upcoming Consultations
-            </Typography>
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          Upcoming Consultations
+        </Typography>
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 4 }}>
-              {upcomingConsultations.map((consultation) => (
-                <Card key={consultation.id} sx={{ cursor: 'pointer' }}>
-                  <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <EventNoteIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                        {consultation.lawyer}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                        {consultation.specialty}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 500 }}>
-                        {consultation.date}
-                      </Typography>
-                    </Box>
-                  </CardContent>
-                </Card>
-              ))}
-            </Box>
-          </>
-        )}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 4 }}>
+          {upcomingConsultations.length > 0 ? (
+            upcomingConsultations.map((consultation) => (
+              <Card key={consultation.id} sx={{ cursor: 'pointer' }} onClick={() => navigate('/lawyers')}>
+                <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <EventNoteIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                      {consultation.lawyer}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      {consultation.specialty}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 500 }}>
+                      {consultation.date}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card
+              sx={{ cursor: 'pointer', border: '1px dashed', borderColor: 'divider' }}
+              onClick={() => navigate('/lawyers')}
+            >
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <EventNoteIcon sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.4, mb: 1 }} />
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  No upcoming consultations
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>
+                  Book a lawyer →
+                </Typography>
+              </CardContent>
+            </Card>
+          )}
+        </Box>
 
         <Card
           sx={{

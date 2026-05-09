@@ -13,6 +13,7 @@ import {
   BottomNavigationAction,
   Paper,
   Rating,
+  Snackbar,
 } from '@mui/material';
 import { useNavigate } from 'react-router';
 import SearchIcon from '@mui/icons-material/Search';
@@ -39,6 +40,9 @@ interface Lawyer {
 export default function LawyerMarketplace() {
   const navigate = useNavigate();
   const [bottomNavValue, setBottomNavValue] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [snackbar, setSnackbar] = useState({ open: false, message: '' });
 
   const lawyers: Lawyer[] = [
     {
@@ -89,6 +93,16 @@ export default function LawyerMarketplace() {
 
   const categories = ['All', 'Property', 'Consumer', 'Family', 'Criminal', 'Corporate'];
 
+  const filteredLawyers = lawyers.filter((lawyer) => {
+    const matchesSearch =
+      !searchQuery ||
+      lawyer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lawyer.specialty.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory =
+      selectedCategory === 'All' || lawyer.specialty.toLowerCase().includes(selectedCategory.toLowerCase());
+    return matchesSearch && matchesCategory;
+  });
+
   const handleBottomNavChange = (event: React.SyntheticEvent, newValue: number) => {
     setBottomNavValue(newValue);
     const routes = ['/', '/lawyers', '/notifications', '/profile'];
@@ -115,6 +129,8 @@ export default function LawyerMarketplace() {
         <TextField
           fullWidth
           placeholder="Search by name or specialty"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -151,13 +167,14 @@ export default function LawyerMarketplace() {
             <Chip
               key={category}
               label={category}
+              onClick={() => setSelectedCategory(category)}
               sx={{
-                backgroundColor: category === 'All' ? 'primary.main' : 'white',
-                color: category === 'All' ? 'white' : 'text.primary',
+                backgroundColor: category === selectedCategory ? 'primary.main' : 'white',
+                color: category === selectedCategory ? 'white' : 'text.primary',
                 fontWeight: 600,
                 cursor: 'pointer',
                 '&:hover': {
-                  backgroundColor: category === 'All' ? 'primary.dark' : 'grey.100',
+                  backgroundColor: category === selectedCategory ? 'primary.dark' : 'grey.100',
                 },
               }}
             />
@@ -165,6 +182,7 @@ export default function LawyerMarketplace() {
           <Chip
             icon={<FilterListIcon />}
             label="Filters"
+            onClick={() => setSnackbar({ open: true, message: 'Advanced filters coming soon' })}
             sx={{
               backgroundColor: 'white',
               cursor: 'pointer',
@@ -176,11 +194,25 @@ export default function LawyerMarketplace() {
         </Box>
 
         <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-          {lawyers.length} verified lawyers available
+          {filteredLawyers.length} verified lawyer{filteredLawyers.length !== 1 ? 's' : ''} available
         </Typography>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
-          {lawyers.map((lawyer) => (
+          {filteredLawyers.length === 0 && (
+            <Box sx={{ textAlign: 'center', py: 6 }}>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                No lawyers match your search
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ color: 'primary.main', cursor: 'pointer', mt: 1 }}
+                onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }}
+              >
+                Clear filters
+              </Typography>
+            </Box>
+          )}
+          {filteredLawyers.map((lawyer) => (
             <Card
               key={lawyer.id}
               sx={{
@@ -245,6 +277,7 @@ export default function LawyerMarketplace() {
                     size="small"
                     fullWidth
                     sx={{ py: 1 }}
+                    onClick={() => setSnackbar({ open: true, message: `${lawyer.name}'s full profile coming soon` })}
                   >
                     View Profile
                   </Button>
@@ -288,10 +321,19 @@ export default function LawyerMarketplace() {
         >
           <BottomNavigationAction label="Home" icon={<HomeIcon />} />
           <BottomNavigationAction label="Lawyers" icon={<GavelIcon />} />
-          <BottomNavigationAction label="Alerts" icon={<NotificationsIcon />} />
+          <BottomNavigationAction label="Notifications" icon={<NotificationsIcon />} />
           <BottomNavigationAction label="Profile" icon={<PersonIcon />} />
         </BottomNavigation>
       </Paper>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+        message={snackbar.message}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ mb: 10 }}
+      />
     </Box>
   );
 }

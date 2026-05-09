@@ -15,6 +15,7 @@ import {
   BottomNavigationAction,
   Paper,
   Chip,
+  Snackbar,
 } from '@mui/material';
 import { useNavigate } from 'react-router';
 import HomeIcon from '@mui/icons-material/Home';
@@ -38,6 +39,7 @@ interface UserProfileProps {
 export default function UserProfile({ onLogout }: UserProfileProps) {
   const navigate = useNavigate();
   const [bottomNavValue, setBottomNavValue] = useState(3);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '' });
 
   const stats = [
     { label: 'Documents', value: '12' },
@@ -50,13 +52,13 @@ export default function UserProfile({ onLogout }: UserProfileProps) {
       icon: DescriptionIcon,
       label: 'My Documents',
       description: 'View all documents',
-      route: '/',
+      route: '__coming_soon__',
     },
     {
       icon: FolderIcon,
       label: 'Saved Drafts',
       description: 'Continue your work',
-      route: '/',
+      route: '__coming_soon__',
     },
     {
       icon: CreditCardIcon,
@@ -165,6 +167,7 @@ export default function UserProfile({ onLogout }: UserProfileProps) {
             py: 1.5,
             borderRadius: 3,
           }}
+          onClick={() => setSnackbar({ open: true, message: 'Profile editing coming soon' })}
         >
           Edit Profile
         </Button>
@@ -183,7 +186,13 @@ export default function UserProfile({ onLogout }: UserProfileProps) {
                         backgroundColor: 'action.hover',
                       },
                     }}
-                    onClick={() => navigate(item.route)}
+                    onClick={() => {
+                      if (item.route === '__coming_soon__') {
+                        setSnackbar({ open: true, message: `${item.label} coming soon` });
+                      } else {
+                        navigate(item.route);
+                      }
+                    }}
                   >
                     <ListItemIcon>
                       <Box
@@ -294,10 +303,19 @@ export default function UserProfile({ onLogout }: UserProfileProps) {
         >
           <BottomNavigationAction label="Home" icon={<HomeIcon />} />
           <BottomNavigationAction label="Lawyers" icon={<GavelIcon />} />
-          <BottomNavigationAction label="Alerts" icon={<NotificationsIcon />} />
+          <BottomNavigationAction label="Notifications" icon={<NotificationsIcon />} />
           <BottomNavigationAction label="Profile" icon={<PersonIcon />} />
         </BottomNavigation>
       </Paper>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+        message={snackbar.message}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ mb: 10 }}
+      />
     </Box>
   );
 }

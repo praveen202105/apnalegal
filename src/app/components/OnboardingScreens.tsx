@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Box, Typography, Button, MobileStepper } from '@mui/material';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router';
@@ -34,6 +34,7 @@ const slides = [
 export default function OnboardingScreens({ onComplete }: OnboardingScreensProps) {
   const [activeStep, setActiveStep] = useState(0);
   const navigate = useNavigate();
+  const touchStartX = useRef<number>(0);
 
   const handleNext = () => {
     if (activeStep === slides.length - 1) {
@@ -47,6 +48,20 @@ export default function OnboardingScreens({ onComplete }: OnboardingScreensProps
   const handleSkip = () => {
     onComplete();
     navigate('/auth');
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const delta = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(delta) < 50) return;
+    if (delta < 0) {
+      handleNext();
+    } else if (activeStep > 0) {
+      setActiveStep((prev) => prev - 1);
+    }
   };
 
   const currentSlide = slides[activeStep];
@@ -75,6 +90,8 @@ export default function OnboardingScreens({ onComplete }: OnboardingScreensProps
       </Box>
 
       <Box
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         sx={{
           flex: 1,
           display: 'flex',
@@ -83,6 +100,7 @@ export default function OnboardingScreens({ onComplete }: OnboardingScreensProps
           justifyContent: 'center',
           px: 4,
           pb: 10,
+          userSelect: 'none',
         }}
       >
         <AnimatePresence mode="wait">

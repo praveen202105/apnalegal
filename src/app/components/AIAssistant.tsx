@@ -9,6 +9,7 @@ import {
   Chip,
   Avatar,
   Paper,
+  Snackbar,
 } from '@mui/material';
 import { useNavigate } from 'react-router';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -37,6 +38,7 @@ export default function AIAssistant() {
   ]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '' });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const suggestedPrompts = [
@@ -54,34 +56,35 @@ export default function AIAssistant() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (inputText.trim()) {
-      const userMessage: Message = {
-        id: messages.length + 1,
-        text: inputText,
-        sender: 'user',
+  const handleSendMessage = (textOverride?: string) => {
+    const text = (textOverride ?? inputText).trim();
+    if (!text || isTyping) return;
+
+    const userMessage: Message = {
+      id: Date.now(),
+      text,
+      sender: 'user',
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInputText('');
+    setIsTyping(true);
+
+    setTimeout(() => {
+      const aiMessage: Message = {
+        id: Date.now() + 1,
+        text: `I understand you're asking about "${text}". Based on Indian law, I can help you with that. This is a simulated response. In a real implementation, this would connect to an AI legal knowledge base trained on Indian legal statutes and case law.`,
+        sender: 'ai',
         timestamp: new Date(),
       };
-
-      setMessages((prev) => [...prev, userMessage]);
-      setInputText('');
-      setIsTyping(true);
-
-      setTimeout(() => {
-        const aiMessage: Message = {
-          id: messages.length + 2,
-          text: `I understand you're asking about "${inputText}". Based on Indian law, I can help you with that. This is a simulated response. In a real implementation, this would connect to an AI legal knowledge base trained on Indian legal statutes and case law.`,
-          sender: 'ai',
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, aiMessage]);
-        setIsTyping(false);
-      }, 1500);
-    }
+      setMessages((prev) => [...prev, aiMessage]);
+      setIsTyping(false);
+    }, 1500);
   };
 
   const handleSuggestedPrompt = (prompt: string) => {
-    setInputText(prompt);
+    handleSendMessage(prompt);
   };
 
   return (
@@ -281,7 +284,11 @@ export default function AIAssistant() {
         }}
       >
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
-          <IconButton size="small" sx={{ mb: 0.5 }}>
+          <IconButton
+            size="small"
+            sx={{ mb: 0.5 }}
+            onClick={() => setSnackbar({ open: true, message: 'File attachment coming soon' })}
+          >
             <AttachFileIcon />
           </IconButton>
 
@@ -291,8 +298,9 @@ export default function AIAssistant() {
             maxRows={4}
             placeholder="Ask your legal question..."
             value={inputText}
+            disabled={isTyping}
             onChange={(e) => setInputText(e.target.value)}
-            onKeyPress={(e) => {
+            onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleSendMessage();
@@ -306,15 +314,20 @@ export default function AIAssistant() {
             }}
           />
 
-          <IconButton size="small" color="primary" sx={{ mb: 0.5 }}>
+          <IconButton
+            size="small"
+            color="primary"
+            sx={{ mb: 0.5 }}
+            onClick={() => setSnackbar({ open: true, message: 'Voice input coming soon' })}
+          >
             <MicIcon />
           </IconButton>
 
           <IconButton
             size="medium"
             color="primary"
-            onClick={handleSendMessage}
-            disabled={!inputText.trim()}
+            onClick={() => handleSendMessage()}
+            disabled={!inputText.trim() || isTyping}
             sx={{
               backgroundColor: 'primary.main',
               color: 'white',
@@ -333,6 +346,14 @@ export default function AIAssistant() {
           </IconButton>
         </Box>
       </Box>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+        message={snackbar.message}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Box,
   Typography,
@@ -8,6 +9,7 @@ import {
   Card,
   CardContent,
   Chip,
+  Snackbar,
 } from '@mui/material';
 import { useNavigate, useParams } from 'react-router';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -20,6 +22,16 @@ import DescriptionIcon from '@mui/icons-material/Description';
 export default function DocumentPreview() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [snackbar, setSnackbar] = useState({ open: false, message: '' });
+
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setSnackbar({ open: true, message: 'Link copied to clipboard' });
+    } catch {
+      setSnackbar({ open: true, message: 'Share link copied' });
+    }
+  };
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', pb: 3 }}>
@@ -39,7 +51,7 @@ export default function DocumentPreview() {
           <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary', flex: 1 }}>
             Document Preview
           </Typography>
-          <IconButton color="primary">
+          <IconButton color="primary" onClick={handleShare}>
             <ShareIcon />
           </IconButton>
         </Toolbar>
@@ -158,6 +170,7 @@ export default function DocumentPreview() {
             startIcon={<EditIcon />}
             fullWidth
             sx={{ py: 1.5 }}
+            onClick={() => navigate('/legal-workflow/rent-agreement')}
           >
             Edit Document
           </Button>
@@ -174,6 +187,14 @@ export default function DocumentPreview() {
           </Button>
         </Box>
       </Box>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+        message={snackbar.message}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 }

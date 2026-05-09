@@ -14,6 +14,7 @@ import {
   MenuItem,
   Select,
   FormControl,
+  Snackbar,
 } from '@mui/material';
 import { useNavigate } from 'react-router';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -22,6 +23,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 export default function SettingsScreen() {
   const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '' });
   const [notifications, setNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [language, setLanguage] = useState('english');
@@ -84,19 +86,19 @@ export default function SettingsScreen() {
           label: 'Privacy Policy',
           description: 'Read our privacy policy',
           type: 'link',
-          route: '/',
+          route: '__coming_soon__',
         },
         {
           label: 'Terms of Service',
           description: 'Read terms and conditions',
           type: 'link',
-          route: '/',
+          route: '__coming_soon__',
         },
         {
           label: 'Data Management',
           description: 'Manage your data',
           type: 'link',
-          route: '/',
+          route: '__coming_soon__',
         },
       ],
     },
@@ -112,13 +114,13 @@ export default function SettingsScreen() {
           label: 'Help & Support',
           description: 'Get help',
           type: 'link',
-          route: '/',
+          route: '__coming_soon__',
         },
         {
           label: 'Rate NyayAI',
           description: 'Share your feedback',
           type: 'link',
-          route: '/',
+          route: '__coming_soon__',
         },
       ],
     },
@@ -193,7 +195,14 @@ export default function SettingsScreen() {
                 backgroundColor: 'action.hover',
               },
             }}
-            onClick={() => item.route && navigate(item.route)}
+            onClick={() => {
+              if (!item.route) return;
+              if (item.route === '__coming_soon__') {
+                setSnackbar({ open: true, message: `${item.label} coming soon` });
+              } else {
+                navigate(item.route);
+              }
+            }}
           >
             <ListItemText
               primary={
@@ -294,6 +303,14 @@ export default function SettingsScreen() {
           © 2026 NyayAI. All rights reserved.
         </Typography>
       </Box>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+        message={snackbar.message}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 }

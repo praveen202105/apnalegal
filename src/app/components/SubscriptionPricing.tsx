@@ -92,7 +92,7 @@ export default function SubscriptionPricing() {
         }}
       >
         <Toolbar>
-          <IconButton edge="start" onClick={() => navigate('/profile')} sx={{ mr: 2 }}>
+          <IconButton edge="start" onClick={() => navigate(-1)} sx={{ mr: 2 }}>
             <ArrowBackIcon />
           </IconButton>
           <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>

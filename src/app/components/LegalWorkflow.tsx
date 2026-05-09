@@ -6,22 +6,37 @@ import {
   Button,
   Stepper,
   Step,
-  StepLabel,
+  StepButton,
   AppBar,
   Toolbar,
   IconButton,
   Paper,
   MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Snackbar,
 } from '@mui/material';
 import { useNavigate, useParams } from 'react-router';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
+function formatDocumentType(type: string | undefined): string {
+  if (!type) return 'Legal Document';
+  return type.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
 export default function LegalWorkflow() {
   const navigate = useNavigate();
   const { type } = useParams();
   const [activeStep, setActiveStep] = useState(0);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '' });
+
+  const documentTitle = formatDocumentType(type);
 
   const [formData, setFormData] = useState({
     landlordName: '',
@@ -39,7 +54,7 @@ export default function LegalWorkflow() {
 
   const handleNext = () => {
     if (activeStep === steps.length - 1) {
-      navigate('/document/new');
+      setShowConfirmDialog(true);
     } else {
       setActiveStep((prev) => prev + 1);
     }
@@ -47,6 +62,11 @@ export default function LegalWorkflow() {
 
   const handleBack = () => {
     setActiveStep((prev) => prev - 1);
+  };
+
+  const handleGenerate = () => {
+    setShowConfirmDialog(false);
+    navigate('/document/new');
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -194,13 +214,16 @@ export default function LegalWorkflow() {
           </IconButton>
           <Box sx={{ flex: 1 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
-              Rent Agreement
+              {documentTitle}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               Step {activeStep + 1} of {steps.length}
             </Typography>
           </Box>
-          <IconButton color="primary">
+          <IconButton
+            color="primary"
+            onClick={() => setSnackbar({ open: true, message: 'Draft saved' })}
+          >
             <SaveIcon />
           </IconButton>
         </Toolbar>
@@ -208,9 +231,14 @@ export default function LegalWorkflow() {
 
       <Box sx={{ px: 3, pt: 3 }}>
         <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-          {steps.map((label) => (
+          {steps.map((label, index) => (
             <Step key={label}>
-              <StepLabel>{label}</StepLabel>
+              <StepButton
+                onClick={() => index < activeStep && setActiveStep(index)}
+                sx={{ cursor: index < activeStep ? 'pointer' : 'default' }}
+              >
+                {label}
+              </StepButton>
             </Step>
           ))}
         </Stepper>
@@ -259,6 +287,30 @@ export default function LegalWorkflow() {
           </Button>
         </Box>
       </Box>
+
+      <Dialog open={showConfirmDialog} onClose={() => setShowConfirmDialog(false)}>
+        <DialogTitle>Generate {documentTitle}?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Your document will be generated based on the details you've provided. You can download
+            or edit it after generation.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowConfirmDialog(false)}>Review Again</Button>
+          <Button onClick={handleGenerate} variant="contained">
+            Generate
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+        message={snackbar.message}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 }

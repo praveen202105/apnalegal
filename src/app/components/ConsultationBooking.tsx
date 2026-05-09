@@ -14,6 +14,7 @@ import {
   FormControlLabel,
   Radio,
   Paper,
+  Snackbar,
 } from '@mui/material';
 import { useNavigate, useParams } from 'react-router';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -55,8 +56,11 @@ export default function ConsultationBooking() {
     { value: 'chat', label: 'Chat', icon: ChatIcon, price: 1000 },
   ];
 
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+
   const handleBooking = () => {
-    navigate('/');
+    setBookingSuccess(true);
+    setTimeout(() => navigate('/'), 2500);
   };
 
   return (
@@ -181,7 +185,7 @@ export default function ConsultationBooking() {
                 cursor: 'pointer',
                 border: '2px solid',
                 borderColor: selectedDate === dateObj.date ? 'primary.main' : 'divider',
-                backgroundColor: selectedDate === dateObj.date ? 'primary.light' : 'white',
+                backgroundColor: selectedDate === dateObj.date ? 'primary.main' : 'white',
                 color: selectedDate === dateObj.date ? 'white' : 'text.primary',
                 transition: 'all 0.2s',
               }}
@@ -272,11 +276,18 @@ export default function ConsultationBooking() {
           fullWidth
           startIcon={<CheckCircleIcon />}
           onClick={handleBooking}
+          disabled={bookingSuccess}
           sx={{ py: 1.5, fontSize: '1.05rem' }}
         >
-          Confirm Booking & Pay
+          {bookingSuccess ? 'Booking Confirmed!' : 'Confirm Booking & Pay'}
         </Button>
       </Box>
+
+      <Snackbar
+        open={bookingSuccess}
+        message="Booking confirmed! Redirecting to home..."
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 }

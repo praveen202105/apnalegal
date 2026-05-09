@@ -36,7 +36,7 @@ export default function NotificationsScreen() {
   const [bottomNavValue, setBottomNavValue] = useState(2);
   const [tabValue, setTabValue] = useState(0);
 
-  const notifications: Notification[] = [
+  const [notifications, setNotifications] = useState<Notification[]>([
     {
       id: 1,
       type: 'document',
@@ -77,7 +77,11 @@ export default function NotificationsScreen() {
       time: '3 days ago',
       read: true,
     },
-  ];
+  ]);
+
+  const markAsRead = (id: number) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  };
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -168,9 +172,10 @@ export default function NotificationsScreen() {
           {filteredNotifications.map((notification) => (
             <Card
               key={notification.id}
+              onClick={() => markAsRead(notification.id)}
               sx={{
                 cursor: 'pointer',
-                backgroundColor: notification.read ? 'white' : 'primary.light',
+                backgroundColor: notification.read ? 'white' : '#E3F2FD',
                 border: notification.read ? '1px solid' : '2px solid',
                 borderColor: notification.read ? 'divider' : 'primary.main',
                 transition: 'all 0.2s',
@@ -243,11 +248,26 @@ export default function NotificationsScreen() {
             >
               <NotificationsIcon sx={{ fontSize: 64, color: 'text.secondary', opacity: 0.3, mb: 2 }} />
               <Typography variant="h6" sx={{ color: 'text.secondary' }}>
-                No unread notifications
+                {tabValue === 1 ? 'No unread notifications' : 'No notifications yet'}
               </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
-                You're all caught up!
-              </Typography>
+              {tabValue === 1 ? (
+                <Box>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
+                    You're all caught up!
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: 'primary.main', cursor: 'pointer', mt: 0.5 }}
+                    onClick={() => setTabValue(0)}
+                  >
+                    View all notifications
+                  </Typography>
+                </Box>
+              ) : (
+                <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
+                  Check back later for updates.
+                </Typography>
+              )}
             </Box>
           )}
         </Box>
