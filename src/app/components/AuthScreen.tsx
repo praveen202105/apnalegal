@@ -14,7 +14,8 @@ import { useNavigate } from 'react-router';
 import GavelIcon from '@mui/icons-material/Gavel';
 import GoogleIcon from '@mui/icons-material/Google';
 import PhoneAndroidIcon from '@mui/icons-material/PhoneAndroid';
-import { sendOtp, verifyOtp, setTokens } from '../../lib/api';
+import { sendOtp, verifyOtp, setTokens, googleLogin } from '../../lib/api';
+import { useGoogleLogin } from '@react-oauth/google';
 
 interface AuthScreenProps {
   onAuthSuccess: () => void;
@@ -58,9 +59,23 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
     }
   };
 
-  const handleGoogleLogin = () => {
-    setError('Google login coming soon. Use OTP for now.');
-  };
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      setError('');
+      try {
+        const { accessToken, refreshToken } = await googleLogin(tokenResponse.access_token);
+        setTokens(accessToken, refreshToken);
+        onAuthSuccess();
+        navigate('/');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Google login failed.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: () => setError('Google Login Failed'),
+  });
 
   return (
     <Box

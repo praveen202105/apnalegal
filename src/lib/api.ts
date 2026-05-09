@@ -76,6 +76,12 @@ export const verifyOtp = (phone: string, otp: string) =>
     }
   );
 
+export const googleLogin = (googleToken: string) =>
+  json<{ accessToken: string; refreshToken: string; user: { name: string; email: string } }>('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ googleToken }),
+  });
+
 export const logout = () =>
   apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
 

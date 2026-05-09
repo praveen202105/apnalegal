@@ -70,31 +70,38 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
 
 // POST /auth/google
 router.post('/google', async (req: Request, res: Response) => {
-  // In production: verify googleToken with Google OAuth and extract profile
-  // For MVP: accept name/email directly from client after Google sign-in
-  const schema = z.object({
-    googleToken: z.string().optional(),
-    name: z.string().optional(),
-    email: z.string().email().optional(),
-  });
+  const schema = z.object({ googleToken: z.string() });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ message: 'Invalid request' });
     return;
   }
 
-  const { name, email } = parsed.data;
-  let user = email ? await User.findOne({ email }) : null;
-  if (!user) {
-    user = await User.create({ name: name || '', email: email || '' });
+  try {
+    const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${parsed.data.googleToken}` }
+    });
+    
+    if (!response.ok) throw new Error('Invalid token');
+    const payload = await response.json();
+    
+    if (!payload.email) throw new Error('No email found in Google profile');
+
+    const { email, name } = payload;
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = await User.create({ name: name || '', email: email || '' });
+    }
+
+    const accessToken = signAccessToken(user._id.toString());
+    const refreshToken = signRefreshToken(user._id.toString());
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.json({ accessToken, refreshToken, user: { id: user._id, name: user.name, email: user.email } });
+  } catch (err) {
+    res.status(400).json({ message: 'Invalid Google token' });
   }
-
-  const accessToken = signAccessToken(user._id.toString());
-  const refreshToken = signRefreshToken(user._id.toString());
-  user.refreshToken = refreshToken;
-  await user.save();
-
-  res.json({ accessToken, refreshToken, user: { id: user._id, name: user.name, email: user.email } });
 });
 
 // POST /auth/refresh
