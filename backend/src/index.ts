@@ -13,6 +13,9 @@ import paymentsRouter from './routes/payments';
 import subscriptionsRouter from './routes/subscriptions';
 import notificationsRouter from './routes/notifications';
 import aiRouter from './routes/ai';
+import adminRouter from './routes/admin';
+import lawyerRouter from './routes/lawyer';
+import consultationsRouter from './routes/consultations';
 
 const app = express();
 
@@ -29,6 +32,9 @@ app.use('/payments', paymentsRouter);
 app.use('/subscription', subscriptionsRouter);
 app.use('/notifications', notificationsRouter);
 app.use('/ai', aiRouter);
+app.use('/admin', adminRouter);
+app.use('/lawyer', lawyerRouter);
+app.use('/consultations', consultationsRouter);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date() }));
 

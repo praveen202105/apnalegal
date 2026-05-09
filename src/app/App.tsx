@@ -11,16 +11,15 @@ import HomeDashboard from './components/HomeDashboard';
 import AIAssistant from './components/AIAssistant';
 import LegalWorkflow from './components/LegalWorkflow';
 import DocumentPreview from './components/DocumentPreview';
-import LawyerMarketplace from './components/LawyerMarketplace';
-import ConsultationBooking from './components/ConsultationBooking';
+import ConsultationRequest from './components/ConsultationRequest';
 import NotificationsScreen from './components/NotificationsScreen';
 import UserProfile from './components/UserProfile';
 import SubscriptionPricing from './components/SubscriptionPricing';
 import SettingsScreen from './components/SettingsScreen';
-import LawyerProfile from './components/LawyerProfile';
 import EditProfile from './components/EditProfile';
 import DocumentsList from './components/DocumentsList';
 import { isAuthenticated, clearTokens, logout, getPreferences } from '../lib/api';
+
 
 function buildTheme(dark: boolean) {
   return createTheme({
@@ -186,15 +185,14 @@ export default function App() {
                 <Route path="/ai-assistant" element={<AIAssistant />} />
                 <Route path="/legal-workflow/:type" element={<LegalWorkflow />} />
                 <Route path="/document/:id" element={<DocumentPreview />} />
-                <Route path="/lawyers" element={<LawyerMarketplace />} />
-                <Route path="/booking/:lawyerId" element={<ConsultationBooking />} />
+                <Route path="/consultations" element={<ConsultationRequest />} />
                 <Route path="/notifications" element={<NotificationsScreen />} />
                 <Route path="/profile" element={<UserProfile onLogout={handleLogout} />} />
                 <Route path="/subscription" element={<SubscriptionPricing />} />
                 <Route path="/settings" element={<SettingsScreen />} />
-                <Route path="/lawyer/:id" element={<LawyerProfile />} />
                 <Route path="/edit-profile" element={<EditProfile />} />
                 <Route path="/documents" element={<DocumentsList />} />
+
               </>
             )}
             <Route

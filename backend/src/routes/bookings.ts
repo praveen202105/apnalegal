@@ -46,7 +46,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
   const lawyer = await Lawyer.findById(parsed.data.lawyerId);
   if (!lawyer) { res.status(404).json({ message: 'Lawyer not found' }); return; }
 
-  const amount = PRICES[parsed.data.type] || lawyer.pricePerHour;
+  const amount = PRICES[parsed.data.type] || lawyer.pricePerCase;
   const booking = await Booking.create({
     userId: req.userId,
     lawyerId: parsed.data.lawyerId,

@@ -6,6 +6,7 @@ export interface IUser extends Document {
   email: string;
   avatar: string;
   refreshToken: string;
+  role: 'user' | 'lawyer' | 'admin';
   subscription: {
     plan: 'free' | 'pro' | 'business';
     since: Date;
@@ -26,6 +27,7 @@ const UserSchema = new Schema<IUser>(
     email: { type: String, default: '' },
     avatar: { type: String, default: '' },
     refreshToken: { type: String, default: '' },
+    role: { type: String, enum: ['user', 'lawyer', 'admin'], default: 'user' },
     subscription: {
       plan: { type: String, enum: ['free', 'pro', 'business'], default: 'free' },
       since: { type: Date, default: Date.now },
@@ -41,3 +43,4 @@ const UserSchema = new Schema<IUser>(
 );
 
 export default mongoose.model<IUser>('User', UserSchema);
+

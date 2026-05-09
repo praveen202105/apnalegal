@@ -120,9 +120,10 @@ export default function NotificationsScreen() {
 
   const handleBottomNavChange = (_event: React.SyntheticEvent, newValue: number) => {
     setBottomNavValue(newValue);
-    const routes = ['/', '/lawyers', '/notifications', '/profile'];
+    const routes = ['/', '/consultations', '/notifications', '/profile'];
     if (routes[newValue]) navigate(routes[newValue]);
   };
+
 
   const filteredNotifications = tabValue === 0 ? notifications : notifications.filter((n) => !n.read);
 
@@ -268,9 +269,10 @@ export default function NotificationsScreen() {
           sx={{ borderTopLeftRadius: 20, borderTopRightRadius: 20, height: 70 }}
         >
           <BottomNavigationAction label="Home" icon={<HomeIcon />} />
-          <BottomNavigationAction label="Lawyers" icon={<GavelIcon />} />
+          <BottomNavigationAction label="Get Help" icon={<GavelIcon />} />
           <BottomNavigationAction label="Alerts" icon={<NotificationsIcon />} />
           <BottomNavigationAction label="Profile" icon={<PersonIcon />} />
+
         </BottomNavigation>
       </Paper>
 

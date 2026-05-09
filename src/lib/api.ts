@@ -1,5 +1,9 @@
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
+export const CATEGORIES = ['Rent Agreement', 'Property Dispute', 'Consumer Complaint', 'Family Law', 'Criminal Defence', 'Labour Law', 'Corporate', 'Cyber Crime', 'Other'];
+export const STATES = ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Chandigarh', 'Laksadweep', 'Puducherry'];
+
+
 // Token storage
 export const getAccessToken = () => localStorage.getItem('accessToken');
 
@@ -135,57 +139,63 @@ export const downloadDocumentUrl = (id: string) => `${BASE_URL}/documents/${id}/
 export const deleteDocument = (id: string) =>
   json(`/documents/${id}`, { method: 'DELETE' });
 
-// ── Lawyers ───────────────────────────────────────────────────────────────────
-export interface Lawyer {
+// ── Consultations (Admin-Mediated) ──────────────────────────────────────────
+export type ConsultationStatus =
+  | 'submitted'
+  | 'under_review'
+  | 'assigned'
+  | 'accepted'
+  | 'in_progress'
+  | 'closed'
+  | 'cancelled';
+
+export interface ConsultationRequest {
   _id: string;
-  name: string;
-  specialty: string;
-  experience: number;
-  rating: number;
-  reviewCount: number;
-  availability: string;
-  pricePerHour: number;
-  verified: boolean;
+  legalCategory: string;
+  description: string;
   city: string;
-  bio: string;
-  availableSlots: { date: string; times: string[] }[];
+  state?: string;
+  preferredLanguage: string;
+  status: ConsultationStatus;
+  adminNotes?: string;
+  assignedLawyerId?: {
+    _id: string;
+    name: string;
+    phone: string;
+    email: string;
+    city: string;
+  };
+  documentId?: {
+    _id: string;
+    type: string;
+    title: string;
+  };
+  createdAt: string;
 }
 
-export const getLawyers = (params?: { specialty?: string; search?: string }) => {
-  const qs = new URLSearchParams();
-  if (params?.specialty) qs.set('specialty', params.specialty);
-  if (params?.search) qs.set('search', params.search);
-  return json<Lawyer[]>(`/lawyers${qs.toString() ? `?${qs}` : ''}`);
-};
+export const createConsultationRequest = (data: {
+  legalCategory: string;
+  description: string;
+  city: string;
+  state?: string;
+  preferredLanguage?: string;
+  documentId?: string;
+}) => json<ConsultationRequest>('/consultations', { method: 'POST', body: JSON.stringify(data) });
 
-export const getLawyer = (id: string) => json<Lawyer>(`/lawyers/${id}`);
+export const getConsultationRequests = () => json<ConsultationRequest[]>('/consultations');
 
-export const getLawyerAvailability = (id: string) =>
-  json<{ date: string; times: string[] }[]>(`/lawyers/${id}/availability`);
+export const getConsultationRequest = (id: string) => json<ConsultationRequest>(`/consultations/${id}`);
 
-// ── Bookings ──────────────────────────────────────────────────────────────────
-export interface Booking {
-  _id: string;
-  lawyerId: { _id: string; name: string; specialty: string } | string;
-  date: string;
-  time: string;
-  type: string;
-  status: string;
-  amount: number;
-  paymentId?: string;
-}
+export const rateConsultation = (id: string, rating: number, note?: string) =>
+  json(`/consultations/${id}/rate`, { method: 'POST', body: JSON.stringify({ rating, note }) });
 
-export const createBooking = (data: { lawyerId: string; date: string; time: string; type: string }) =>
-  json<Booking>('/bookings', { method: 'POST', body: JSON.stringify(data) });
+// ── Deprecated Lawyers/Bookings (Legacy) ──────────────────────────────────────
+export interface Lawyer { _id: string; name: string; specialty: string; city: string; }
+export interface Booking { _id: string; lawyerId: any; date: string; time: string; status: string; }
+export const getLawyers = () => { throw new Error('Deprecated'); };
+export const createBooking = () => { throw new Error('Deprecated'); };
+export const getUpcomingBookings = () => json<Booking[]>('/bookings/upcoming'); // Keep for backward compatibility until HomeDashboard is updated
 
-export const getBookings = () => json<Booking[]>('/bookings');
-
-export const getUpcomingBookings = () => json<Booking[]>('/bookings/upcoming');
-
-export const getBooking = (id: string) => json<Booking>(`/bookings/${id}`);
-
-export const cancelBooking = (id: string) =>
-  json(`/bookings/${id}/cancel`, { method: 'POST' });
 
 // ── Payments ──────────────────────────────────────────────────────────────────
 export const pay = (bookingId: string, amount: number) =>

@@ -13,6 +13,9 @@ import {
   Chip,
   Avatar,
   Skeleton,
+  Stepper,
+  Step,
+  StepLabel,
 } from '@mui/material';
 import { useNavigate } from 'react-router';
 import SearchIcon from '@mui/icons-material/Search';
@@ -26,9 +29,9 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import LocalPoliceIcon from '@mui/icons-material/LocalPolice';
-import EventNoteIcon from '@mui/icons-material/EventNote';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import { getMe, getDocuments, getUpcomingBookings } from '../../lib/api';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { getMe, getDocuments, getConsultationRequests, type ConsultationRequest } from '../../lib/api';
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -50,6 +53,15 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(days / 7)} week${days >= 14 ? 's' : ''} ago`;
 }
 
+const statusSteps = [
+  { key: 'submitted', label: 'Submitted' },
+  { key: 'under_review', label: 'Reviewing' },
+  { key: 'assigned', label: 'Matched' },
+  { key: 'accepted', label: 'Accepted' },
+  { key: 'in_progress', label: 'Ongoing' },
+  { key: 'closed', label: 'Closed' },
+];
+
 export default function HomeDashboard() {
   const [bottomNavValue, setBottomNavValue] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,7 +69,7 @@ export default function HomeDashboard() {
 
   const [userName, setUserName] = useState('');
   const [documents, setDocuments] = useState<{ _id: string; type: string; status: string; createdAt: string }[]>([]);
-  const [consultations, setConsultations] = useState<{ _id: string; lawyerId: { name: string; specialty: string } | string; date: string; time: string }[]>([]);
+  const [consultations, setConsultations] = useState<ConsultationRequest[]>([]);
   const [loadingUser, setLoadingUser] = useState(true);
 
   useEffect(() => {
@@ -70,10 +82,13 @@ export default function HomeDashboard() {
       .then((docs) => setDocuments(docs.slice(0, 3)))
       .catch(() => {});
 
-    getUpcomingBookings()
-      .then((bookings) => setConsultations(bookings.slice(0, 3)))
+    getConsultationRequests()
+      .then((reqs) => setConsultations(reqs))
       .catch(() => {});
   }, []);
+
+  const latestRequest = consultations[0];
+  const activeStep = latestRequest ? statusSteps.findIndex(s => s.key === latestRequest.status) : -1;
 
   const quickActions = [
     { icon: ArticleIcon, title: 'Rent Agreement', description: 'Generate rental agreement', color: '#1565C0', route: '/legal-workflow/rent-agreement' },
@@ -85,7 +100,7 @@ export default function HomeDashboard() {
 
   const handleBottomNavChange = (_event: React.SyntheticEvent, newValue: number) => {
     setBottomNavValue(newValue);
-    const routes = ['/', '/lawyers', '/notifications', '/profile'];
+    const routes = ['/', '/consultations', '/notifications', '/profile'];
     if (routes[newValue]) navigate(routes[newValue]);
   };
 
@@ -123,7 +138,7 @@ export default function HomeDashboard() {
 
         <TextField
           fullWidth
-          placeholder="What legal help do you need?"
+          placeholder="Search for legal help..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={(e) => {
@@ -149,6 +164,45 @@ export default function HomeDashboard() {
       </Box>
 
       <Box sx={{ px: 3, mt: -3 }}>
+        {/* Case Status Tracker */}
+        {latestRequest && (
+          <Card sx={{ mb: 4, borderRadius: 4, border: '1px solid', borderColor: 'primary.light' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                  ACTIVE CONSULTATION
+                </Typography>
+                <Chip label={latestRequest.legalCategory} size="small" variant="outlined" />
+              </Box>
+              
+              <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 2 }}>
+                {statusSteps.map((step) => (
+                  <Step key={step.key}>
+                    <StepLabel>
+                      <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>{step.label}</Typography>
+                    </StepLabel>
+                  </Step>
+                ))}
+              </Stepper>
+
+              {latestRequest.status === 'assigned' && latestRequest.assignedLawyerId && (
+                <Box sx={{ p: 2, backgroundColor: 'success.light', borderRadius: 2, opacity: 0.1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.dark' }}>
+                    Lawyer Matched: {latestRequest.assignedLawyerId.name}
+                  </Typography>
+                  <Typography variant="caption" sx={{ display: 'block' }}>
+                    They will contact you shortly.
+                  </Typography>
+                </Box>
+              )}
+              
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1 }}>
+                Updated {timeAgo(latestRequest.createdAt)}
+              </Typography>
+            </CardContent>
+          </Card>
+        )}
+
         <Card
           sx={{ background: 'linear-gradient(135deg, #00897B 0%, #00695C 100%)', color: 'white', mb: 3, cursor: 'pointer' }}
           onClick={() => navigate('/ai-assistant')}
@@ -219,39 +273,36 @@ export default function HomeDashboard() {
           )}
         </Box>
 
-        <Typography variant="h6" sx={{ mb: 2 }}>Upcoming Consultations</Typography>
+        <Typography variant="h6" sx={{ mb: 2 }}>My Consultations</Typography>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 4 }}>
           {consultations.length > 0 ? (
-            consultations.map((c) => {
-              const lawyer = typeof c.lawyerId === 'object' ? c.lawyerId : null;
-              return (
-                <Card key={c._id} sx={{ cursor: 'pointer' }} onClick={() => navigate('/lawyers')}>
-                  <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <EventNoteIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{lawyer?.name ?? 'Lawyer'}</Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>{lawyer?.specialty ?? ''}</Typography>
-                      <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 500 }}>
-                        {c.date} at {c.time}
-                      </Typography>
-                    </Box>
-                  </CardContent>
-                </Card>
-              );
-            })
+            consultations.map((c) => (
+              <Card key={c._id} sx={{ cursor: 'pointer' }}>
+                <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <CheckCircleIcon sx={{ fontSize: 32, color: c.status === 'closed' ? 'success.main' : 'primary.main' }} />
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{c.legalCategory}</Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>{c.city}</Typography>
+                    <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 500 }}>
+                      Status: {c.status.replace('_', ' ').toUpperCase()}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            ))
           ) : (
-            <Card sx={{ cursor: 'pointer', border: '1px dashed', borderColor: 'divider' }} onClick={() => navigate('/lawyers')}>
+            <Card sx={{ cursor: 'pointer', border: '1px dashed', borderColor: 'divider' }} onClick={() => navigate('/consultations')}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                <EventNoteIcon sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.4, mb: 1 }} />
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>No upcoming consultations</Typography>
-                <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>Book a lawyer →</Typography>
+                <GavelIcon sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.4, mb: 1 }} />
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>No consultation requests</Typography>
+                <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>Get legal help now →</Typography>
               </CardContent>
             </Card>
           )}
         </Box>
 
         <Card
-          sx={{ background: 'linear-gradient(135deg, #6A1B9A15 0%, #6A1B9A05 100%)', border: '1px solid', borderColor: '#6A1B9A30', cursor: 'pointer' }}
+          sx={{ background: 'linear-gradient(135deg, #6A1B9A15 0%, #6A1B9A05 100%)', border: '1px solid', borderColor: '#6A1B9A30', cursor: 'pointer', mb: 4 }}
           onClick={() => navigate('/subscription')}
         >
           <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -273,7 +324,7 @@ export default function HomeDashboard() {
       </Fab>
 
       <Paper
-        sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, borderTopLeftRadius: 20, borderTopRightRadius: 20, boxShadow: '0px -4px 12px rgba(0, 0, 0, 0.1)' }}
+        sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, borderTopLeftRadius: 20, borderTopRightRadius: 20, boxShadow: '0px -4px 12px rgba(0, 0, 0, 0.1)', zIndex: 1000 }}
         elevation={3}
       >
         <BottomNavigation
@@ -282,7 +333,7 @@ export default function HomeDashboard() {
           sx={{ borderTopLeftRadius: 20, borderTopRightRadius: 20, height: 70 }}
         >
           <BottomNavigationAction label="Home" icon={<HomeIcon />} />
-          <BottomNavigationAction label="Lawyers" icon={<GavelIcon />} />
+          <BottomNavigationAction label="Get Help" icon={<GavelIcon />} />
           <BottomNavigationAction label="Alerts" icon={<NotificationsIcon />} />
           <BottomNavigationAction label="Profile" icon={<PersonIcon />} />
         </BottomNavigation>
