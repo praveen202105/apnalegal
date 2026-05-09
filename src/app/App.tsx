@@ -1,0 +1,244 @@
+import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import { Box } from '@mui/material';
+
+// Import screens
+import SplashScreen from './components/SplashScreen';
+import OnboardingScreens from './components/OnboardingScreens';
+import AuthScreen from './components/AuthScreen';
+import HomeDashboard from './components/HomeDashboard';
+import AIAssistant from './components/AIAssistant';
+import LegalWorkflow from './components/LegalWorkflow';
+import DocumentPreview from './components/DocumentPreview';
+import LawyerMarketplace from './components/LawyerMarketplace';
+import ConsultationBooking from './components/ConsultationBooking';
+import NotificationsScreen from './components/NotificationsScreen';
+import UserProfile from './components/UserProfile';
+import SubscriptionPricing from './components/SubscriptionPricing';
+import SettingsScreen from './components/SettingsScreen';
+
+// Material Design 3 Theme Configuration
+const theme = createTheme({
+  palette: {
+    mode: 'light',
+    primary: {
+      main: '#1565C0', // Deep Blue
+      light: '#5E92F3',
+      dark: '#003C8F',
+    },
+    secondary: {
+      main: '#FFFFFF',
+      contrastText: '#1565C0',
+    },
+    success: {
+      main: '#4CAF50',
+    },
+    warning: {
+      main: '#FFA726',
+    },
+    error: {
+      main: '#EF5350',
+    },
+    background: {
+      default: '#F5F5F5',
+      paper: '#FFFFFF',
+    },
+    text: {
+      primary: '#212121',
+      secondary: '#757575',
+    },
+  },
+  typography: {
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    h4: {
+      fontWeight: 700,
+      fontSize: '1.75rem',
+    },
+    h5: {
+      fontWeight: 600,
+      fontSize: '1.5rem',
+    },
+    h6: {
+      fontWeight: 600,
+      fontSize: '1.25rem',
+    },
+    body1: {
+      fontSize: '1rem',
+      lineHeight: 1.6,
+    },
+    button: {
+      textTransform: 'none',
+      fontWeight: 600,
+    },
+  },
+  shape: {
+    borderRadius: 12,
+  },
+  shadows: [
+    'none',
+    '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    '0px 4px 8px rgba(0, 0, 0, 0.08)',
+    '0px 6px 12px rgba(0, 0, 0, 0.1)',
+    '0px 8px 16px rgba(0, 0, 0, 0.12)',
+    '0px 12px 24px rgba(0, 0, 0, 0.15)',
+    '0px 16px 32px rgba(0, 0, 0, 0.18)',
+    '0px 20px 40px rgba(0, 0, 0, 0.2)',
+    '0px 24px 48px rgba(0, 0, 0, 0.22)',
+    '0px 32px 64px rgba(0, 0, 0, 0.25)',
+    '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    '0px 2px 4px rgba(0, 0, 0, 0.05)',
+  ],
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          padding: '12px 24px',
+          fontSize: '1rem',
+        },
+        contained: {
+          boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.08)',
+          '&:hover': {
+            boxShadow: '0px 6px 12px rgba(0, 0, 0, 0.12)',
+          },
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 16,
+          boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.08)',
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 12,
+          },
+        },
+      },
+    },
+  },
+});
+
+export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
+  const [hasOnboarded, setHasOnboarded] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Check localStorage for onboarding and auth status
+    const onboarded = localStorage.getItem('hasOnboarded') === 'true';
+    const authenticated = localStorage.getItem('isAuthenticated') === 'true';
+
+    setHasOnboarded(onboarded);
+    setIsAuthenticated(authenticated);
+
+    // Show splash for 2 seconds
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('hasOnboarded', 'true');
+    setHasOnboarded(true);
+  };
+
+  const handleAuthSuccess = () => {
+    localStorage.setItem('isAuthenticated', 'true');
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.setItem('isAuthenticated', 'false');
+    setIsAuthenticated(false);
+  };
+
+  if (showSplash) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <SplashScreen />
+      </ThemeProvider>
+    );
+  }
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{
+        minHeight: '100vh',
+        backgroundColor: 'background.default',
+        maxWidth: '100vw',
+        overflowX: 'hidden',
+      }}>
+        <BrowserRouter>
+          <Routes>
+            {!hasOnboarded && (
+              <Route
+                path="/onboarding"
+                element={<OnboardingScreens onComplete={handleOnboardingComplete} />}
+              />
+            )}
+            {!isAuthenticated && hasOnboarded && (
+              <Route
+                path="/auth"
+                element={<AuthScreen onAuthSuccess={handleAuthSuccess} />}
+              />
+            )}
+            {isAuthenticated && (
+              <>
+                <Route path="/" element={<HomeDashboard />} />
+                <Route path="/ai-assistant" element={<AIAssistant />} />
+                <Route path="/legal-workflow/:type" element={<LegalWorkflow />} />
+                <Route path="/document/:id" element={<DocumentPreview />} />
+                <Route path="/lawyers" element={<LawyerMarketplace />} />
+                <Route path="/booking/:lawyerId" element={<ConsultationBooking />} />
+                <Route path="/notifications" element={<NotificationsScreen />} />
+                <Route path="/profile" element={<UserProfile onLogout={handleLogout} />} />
+                <Route path="/subscription" element={<SubscriptionPricing />} />
+                <Route path="/settings" element={<SettingsScreen />} />
+              </>
+            )}
+            <Route
+              path="*"
+              element={
+                <Navigate
+                  to={
+                    !hasOnboarded
+                      ? "/onboarding"
+                      : !isAuthenticated
+                        ? "/auth"
+                        : "/"
+                  }
+                  replace
+                />
+              }
+            />
+          </Routes>
+        </BrowserRouter>
+      </Box>
+    </ThemeProvider>
+  );
+}
