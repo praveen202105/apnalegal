@@ -78,7 +78,11 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
   const doc = await DocumentModel.findOneAndDelete({ _id: req.params.id, userId: req.userId });
   if (!doc) { res.status(404).json({ message: 'Document not found' }); return; }
-  if (doc.pdfPath && fs.existsSync(doc.pdfPath)) fs.unlinkSync(doc.pdfPath);
+  
+  if (doc.pdfPath && !doc.pdfPath.startsWith('http')) {
+    if (fs.existsSync(doc.pdfPath)) fs.unlinkSync(doc.pdfPath);
+  }
+  
   res.json({ message: 'Document deleted' });
 });
 
@@ -118,7 +122,7 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
   }
   const doc = await DocumentModel.findOne({ _id: req.params.id, userId: req.userId });
   if (!doc) { res.status(404).json({ message: 'Document not found' }); return; }
-  if (!doc.pdfPath || !fs.existsSync(doc.pdfPath)) {
+  if (!doc.pdfPath) {
     res.status(400).json({ message: 'PDF not yet generated. Call /generate first.' });
     return;
   }
@@ -126,7 +130,19 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
   const filename = `${doc.title.replace(/\s+/g, '_')}.pdf`;
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-  fs.createReadStream(doc.pdfPath).pipe(res);
+
+  if (doc.pdfPath.startsWith('http')) {
+    const response = await fetch(doc.pdfPath);
+    if (!response.ok) { res.status(500).json({ message: 'Failed to retrieve PDF from cloud' }); return; }
+    const arrayBuffer = await response.arrayBuffer();
+    res.send(Buffer.from(arrayBuffer));
+  } else {
+    if (!fs.existsSync(doc.pdfPath)) {
+      res.status(400).json({ message: 'PDF file missing on server.' });
+      return;
+    }
+    fs.createReadStream(doc.pdfPath).pipe(res);
+  }
 });
 
 export default router;

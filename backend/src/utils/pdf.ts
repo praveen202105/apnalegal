@@ -34,16 +34,25 @@ function formatDate(dateStr?: string): string {
   }
 }
 
+import { v2 as cloudinary } from 'cloudinary';
+
 export async function generatePdf(
   docType: string,
   formData: FormData,
   docId: string
 ): Promise<string> {
-  const filePath = path.join(UPLOADS_DIR, `${docId}.pdf`);
-
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 60 });
-    const stream = fs.createWriteStream(filePath);
+    
+    const stream = cloudinary.uploader.upload_stream(
+      { resource_type: 'raw', public_id: `nyayai_docs/${docId}.pdf` },
+      (error, result) => {
+        if (error) return reject(error);
+        if (result) return resolve(result.secure_url);
+        reject(new Error('Upload to Cloudinary failed'));
+      }
+    );
+    
     doc.pipe(stream);
 
     // Header
@@ -65,8 +74,6 @@ export async function generatePdf(
     }
 
     doc.end();
-    stream.on('finish', () => resolve(filePath));
-    stream.on('error', reject);
   });
 }
 
