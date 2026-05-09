@@ -19,6 +19,32 @@ router.post('/send-otp', async (req: Request, res: Response) => {
 
   const { phone } = parsed.data;
 
+  if (process.env.SMS_PROVIDER === 'twilio') {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+
+    const authHeader = `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`;
+    const url = `https://verify.twilio.com/v2/Services/${serviceSid}/Verifications`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({ To: phone, Channel: 'sms' })
+    });
+
+    if (!response.ok) {
+      res.status(500).json({ message: 'Failed to send OTP via Twilio' });
+      return;
+    }
+
+    res.json({ message: 'OTP sent successfully via Twilio' });
+    return;
+  }
+
   // Check if a valid OTP already exists for this phone
   const existingRecord = await Otp.findOne({ phone, expiresAt: { $gt: new Date() } });
   if (existingRecord) {
@@ -47,13 +73,37 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
   }
 
   const { phone, otp } = parsed.data;
-  const record = await Otp.findOne({ phone, otp });
-  if (!record || record.expiresAt < new Date()) {
-    res.status(400).json({ message: 'Invalid or expired OTP' });
-    return;
-  }
 
-  await Otp.deleteMany({ phone });
+  if (process.env.SMS_PROVIDER === 'twilio') {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+
+    const authHeader = `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`;
+    const url = `https://verify.twilio.com/v2/Services/${serviceSid}/VerificationCheck`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({ To: phone, Code: otp })
+    });
+
+    const data = await response.json();
+    if (!response.ok || data.status !== 'approved') {
+      res.status(400).json({ message: 'Invalid or expired OTP' });
+      return;
+    }
+  } else {
+    const record = await Otp.findOne({ phone, otp });
+    if (!record || record.expiresAt < new Date()) {
+      res.status(400).json({ message: 'Invalid or expired OTP' });
+      return;
+    }
+    await Otp.deleteMany({ phone });
+  }
 
   let user = await User.findOne({ phone });
   if (!user) {
