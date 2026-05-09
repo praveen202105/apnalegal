@@ -6,13 +6,20 @@ export interface AuthRequest extends Request {
 }
 
 export function authenticate(req: AuthRequest, res: Response, next: NextFunction): void {
+  let token = '';
+
   const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
+  if (header && header.startsWith('Bearer ')) {
+    token = header.split(' ')[1];
+  } else if (req.query.token && typeof req.query.token === 'string') {
+    token = req.query.token;
+  }
+
+  if (!token) {
     res.status(401).json({ message: 'No token provided' });
     return;
   }
 
-  const token = header.split(' ')[1];
   try {
     const payload = verifyAccessToken(token);
     req.userId = payload.userId;
