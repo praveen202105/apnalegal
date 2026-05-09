@@ -91,7 +91,7 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
       body: new URLSearchParams({ To: phone, Code: otp })
     });
 
-    const data = await response.json();
+    const data = (await response.json()) as { status?: string };
     if (!response.ok || data.status !== 'approved') {
       res.status(400).json({ message: 'Invalid or expired OTP' });
       return;
