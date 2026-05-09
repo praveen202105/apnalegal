@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -16,6 +16,7 @@ import {
   Paper,
   Chip,
   Snackbar,
+  Skeleton,
 } from '@mui/material';
 import { useNavigate } from 'react-router';
 import HomeIcon from '@mui/icons-material/Home';
@@ -31,6 +32,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import EditIcon from '@mui/icons-material/Edit';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import StarIcon from '@mui/icons-material/Star';
+import { getMe, getStats, getCurrentPlan } from '../../lib/api';
 
 interface UserProfileProps {
   onLogout: () => void;
@@ -41,57 +43,43 @@ export default function UserProfile({ onLogout }: UserProfileProps) {
   const [bottomNavValue, setBottomNavValue] = useState(3);
   const [snackbar, setSnackbar] = useState({ open: false, message: '' });
 
-  const stats = [
-    { label: 'Documents', value: '12' },
-    { label: 'Consultations', value: '5' },
-    { label: 'Saved Drafts', value: '3' },
-  ];
+  const [user, setUser] = useState<{ name: string; email: string; phone: string } | null>(null);
+  const [stats, setStats] = useState({ documents: 0, consultations: 0, drafts: 0 });
+  const [planName, setPlanName] = useState('Free');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([getMe(), getStats(), getCurrentPlan()])
+      .then(([u, s, plan]) => {
+        setUser({ name: u.name || '', email: u.email || '', phone: u.phone });
+        setStats(s);
+        setPlanName(plan.name);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   const menuItems = [
-    {
-      icon: DescriptionIcon,
-      label: 'My Documents',
-      description: 'View all documents',
-      route: '__coming_soon__',
-    },
-    {
-      icon: FolderIcon,
-      label: 'Saved Drafts',
-      description: 'Continue your work',
-      route: '__coming_soon__',
-    },
-    {
-      icon: CreditCardIcon,
-      label: 'Subscription & Billing',
-      description: 'Manage your plan',
-      route: '/subscription',
-    },
-    {
-      icon: SecurityIcon,
-      label: 'Privacy & Security',
-      description: 'Manage data & access',
-      route: '/settings',
-    },
-    {
-      icon: SettingsIcon,
-      label: 'Settings',
-      description: 'App preferences',
-      route: '/settings',
-    },
+    { icon: DescriptionIcon, label: 'My Documents', description: 'View all documents', route: '__coming_soon__' },
+    { icon: FolderIcon, label: 'Saved Drafts', description: 'Continue your work', route: '__coming_soon__' },
+    { icon: CreditCardIcon, label: 'Subscription & Billing', description: 'Manage your plan', route: '/subscription' },
+    { icon: SecurityIcon, label: 'Privacy & Security', description: 'Manage data & access', route: '/settings' },
+    { icon: SettingsIcon, label: 'Settings', description: 'App preferences', route: '/settings' },
   ];
 
-  const handleBottomNavChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleBottomNavChange = (_event: React.SyntheticEvent, newValue: number) => {
     setBottomNavValue(newValue);
     const routes = ['/', '/lawyers', '/notifications', '/profile'];
-    if (routes[newValue]) {
-      navigate(routes[newValue]);
-    }
+    if (routes[newValue]) navigate(routes[newValue]);
   };
 
   const handleLogout = () => {
     onLogout();
     navigate('/auth');
   };
+
+  const isPro = planName.toLowerCase() !== 'free';
+  const initial = user?.name?.charAt(0)?.toUpperCase() || '?';
 
   return (
     <Box sx={{ pb: 10, minHeight: '100vh', backgroundColor: 'background.default' }}>
@@ -108,33 +96,35 @@ export default function UserProfile({ onLogout }: UserProfileProps) {
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
           <Avatar
-            sx={{
-              width: 100,
-              height: 100,
-              mb: 2,
-              border: '4px solid rgba(255, 255, 255, 0.3)',
-              fontSize: '2.5rem',
-            }}
+            sx={{ width: 100, height: 100, mb: 2, border: '4px solid rgba(255,255,255,0.3)', fontSize: '2.5rem' }}
           >
-            A
+            {initial}
           </Avatar>
 
-          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-            Amit Sharma
-          </Typography>
-
-          <Typography variant="body2" sx={{ opacity: 0.9, mb: 2 }}>
-            amit.sharma@email.com
-          </Typography>
+          {loading ? (
+            <>
+              <Skeleton variant="text" width={160} height={32} sx={{ bgcolor: 'rgba(255,255,255,0.2)' }} />
+              <Skeleton variant="text" width={200} height={24} sx={{ bgcolor: 'rgba(255,255,255,0.2)', mb: 1 }} />
+            </>
+          ) : (
+            <>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+                {user?.name || 'Your Name'}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9, mb: 2 }}>
+                {user?.email || user?.phone || ''}
+              </Typography>
+            </>
+          )}
 
           <Chip
             icon={<StarIcon sx={{ fontSize: 16 }} />}
-            label="Pro Member"
+            label={isPro ? `${planName} Member` : 'Free Plan'}
             sx={{
-              backgroundColor: 'rgba(255, 215, 0, 0.2)',
-              color: '#FFD700',
+              backgroundColor: isPro ? 'rgba(255, 215, 0, 0.2)' : 'rgba(255,255,255,0.15)',
+              color: isPro ? '#FFD700' : 'rgba(255,255,255,0.8)',
               fontWeight: 600,
-              border: '1px solid #FFD700',
+              border: `1px solid ${isPro ? '#FFD700' : 'rgba(255,255,255,0.3)'}`,
             }}
           />
         </Box>
@@ -144,14 +134,20 @@ export default function UserProfile({ onLogout }: UserProfileProps) {
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-around' }}>
-              {stats.map((stat, index) => (
+              {[
+                { label: 'Documents', value: stats.documents },
+                { label: 'Consultations', value: stats.consultations },
+                { label: 'Saved Drafts', value: stats.drafts },
+              ].map((stat, index) => (
                 <Box key={index} sx={{ textAlign: 'center' }}>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                    {stat.value}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    {stat.label}
-                  </Typography>
+                  {loading ? (
+                    <Skeleton variant="text" width={40} height={36} sx={{ mx: 'auto' }} />
+                  ) : (
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                      {stat.value}
+                    </Typography>
+                  )}
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>{stat.label}</Typography>
                 </Box>
               ))}
             </Box>
@@ -162,11 +158,7 @@ export default function UserProfile({ onLogout }: UserProfileProps) {
           variant="outlined"
           fullWidth
           startIcon={<EditIcon />}
-          sx={{
-            mb: 3,
-            py: 1.5,
-            borderRadius: 3,
-          }}
+          sx={{ mb: 3, py: 1.5, borderRadius: 3 }}
           onClick={() => setSnackbar({ open: true, message: 'Profile editing coming soon' })}
         >
           Edit Profile
@@ -179,13 +171,7 @@ export default function UserProfile({ onLogout }: UserProfileProps) {
               return (
                 <Box key={index}>
                   <ListItem
-                    sx={{
-                      cursor: 'pointer',
-                      py: 2,
-                      '&:hover': {
-                        backgroundColor: 'action.hover',
-                      },
-                    }}
+                    sx={{ cursor: 'pointer', py: 2, '&:hover': { backgroundColor: 'action.hover' } }}
                     onClick={() => {
                       if (item.route === '__coming_soon__') {
                         setSnackbar({ open: true, message: `${item.label} coming soon` });
@@ -196,30 +182,14 @@ export default function UserProfile({ onLogout }: UserProfileProps) {
                   >
                     <ListItemIcon>
                       <Box
-                        sx={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: '10px',
-                          backgroundColor: 'primary.light',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
+                        sx={{ width: 40, height: 40, borderRadius: '10px', backgroundColor: 'primary.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
                         <Icon sx={{ fontSize: 22, color: 'primary.main' }} />
                       </Box>
                     </ListItemIcon>
                     <ListItemText
-                      primary={
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                          {item.label}
-                        </Typography>
-                      }
-                      secondary={
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {item.description}
-                        </Typography>
-                      }
+                      primary={<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{item.label}</Typography>}
+                      secondary={<Typography variant="caption" sx={{ color: 'text.secondary' }}>{item.description}</Typography>}
                     />
                     <ChevronRightIcon sx={{ color: 'text.secondary' }} />
                   </ListItem>
@@ -231,75 +201,34 @@ export default function UserProfile({ onLogout }: UserProfileProps) {
         </Card>
 
         <Card
-          sx={{
-            cursor: 'pointer',
-            border: '2px solid',
-            borderColor: 'error.light',
-            '&:hover': {
-              backgroundColor: 'error.light',
-            },
-          }}
+          sx={{ cursor: 'pointer', border: '2px solid', borderColor: 'error.light', '&:hover': { backgroundColor: 'error.light' } }}
           onClick={handleLogout}
         >
           <ListItem>
             <ListItemIcon>
-              <Box
-                sx={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '10px',
-                  backgroundColor: 'error.light',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
+              <Box sx={{ width: 40, height: 40, borderRadius: '10px', backgroundColor: 'error.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <LogoutIcon sx={{ fontSize: 22, color: 'error.main' }} />
               </Box>
             </ListItemIcon>
             <ListItemText
-              primary={
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'error.main' }}>
-                  Logout
-                </Typography>
-              }
+              primary={<Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'error.main' }}>Logout</Typography>}
             />
           </ListItem>
         </Card>
 
-        <Typography
-          variant="caption"
-          sx={{
-            display: 'block',
-            textAlign: 'center',
-            color: 'text.secondary',
-            mt: 3,
-          }}
-        >
+        <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', color: 'text.secondary', mt: 3 }}>
           NyayAI v1.0.0 • Made with ❤️ in India
         </Typography>
       </Box>
 
       <Paper
-        sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          boxShadow: '0px -4px 12px rgba(0, 0, 0, 0.1)',
-        }}
+        sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, borderTopLeftRadius: 20, borderTopRightRadius: 20, boxShadow: '0px -4px 12px rgba(0, 0, 0, 0.1)' }}
         elevation={3}
       >
         <BottomNavigation
           value={bottomNavValue}
           onChange={handleBottomNavChange}
-          sx={{
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            height: 70,
-          }}
+          sx={{ borderTopLeftRadius: 20, borderTopRightRadius: 20, height: 70 }}
         >
           <BottomNavigationAction label="Home" icon={<HomeIcon />} />
           <BottomNavigationAction label="Lawyers" icon={<GavelIcon />} />

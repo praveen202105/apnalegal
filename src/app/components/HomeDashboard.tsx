@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -12,6 +12,7 @@ import {
   Fab,
   Chip,
   Avatar,
+  Skeleton,
 } from '@mui/material';
 import { useNavigate } from 'react-router';
 import SearchIcon from '@mui/icons-material/Search';
@@ -27,6 +28,7 @@ import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import LocalPoliceIcon from '@mui/icons-material/LocalPolice';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import { getMe, getDocuments, getUpcomingBookings } from '../../lib/api';
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -35,79 +37,56 @@ function getGreeting() {
   return 'Good Evening';
 }
 
+function formatDocType(type: string) {
+  return type.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days} days ago`;
+  return `${Math.floor(days / 7)} week${days >= 14 ? 's' : ''} ago`;
+}
+
 export default function HomeDashboard() {
   const [bottomNavValue, setBottomNavValue] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
+  const [userName, setUserName] = useState('');
+  const [documents, setDocuments] = useState<{ _id: string; type: string; status: string; createdAt: string }[]>([]);
+  const [consultations, setConsultations] = useState<{ _id: string; lawyerId: { name: string; specialty: string } | string; date: string; time: string }[]>([]);
+  const [loadingUser, setLoadingUser] = useState(true);
+
+  useEffect(() => {
+    getMe()
+      .then((u) => setUserName(u.name || 'User'))
+      .catch(() => setUserName('User'))
+      .finally(() => setLoadingUser(false));
+
+    getDocuments()
+      .then((docs) => setDocuments(docs.slice(0, 3)))
+      .catch(() => {});
+
+    getUpcomingBookings()
+      .then((bookings) => setConsultations(bookings.slice(0, 3)))
+      .catch(() => {});
+  }, []);
+
   const quickActions = [
-    {
-      icon: ArticleIcon,
-      title: 'Rent Agreement',
-      description: 'Generate rental agreement',
-      color: '#1565C0',
-      route: '/legal-workflow/rent-agreement',
-    },
-    {
-      icon: DescriptionIcon,
-      title: 'Affidavit',
-      description: 'Create affidavit document',
-      color: '#00897B',
-      route: '/legal-workflow/affidavit',
-    },
-    {
-      icon: ReceiptLongIcon,
-      title: 'Legal Notice',
-      description: 'Draft legal notice',
-      color: '#6A1B9A',
-      route: '/legal-workflow/legal-notice',
-    },
-    {
-      icon: ReportProblemIcon,
-      title: 'Consumer Complaint',
-      description: 'File consumer complaint',
-      color: '#F57C00',
-      route: '/legal-workflow/consumer-complaint',
-    },
-    {
-      icon: LocalPoliceIcon,
-      title: 'FIR Help',
-      description: 'FIR assistance',
-      color: '#D32F2F',
-      route: '/legal-workflow/fir-help',
-    },
+    { icon: ArticleIcon, title: 'Rent Agreement', description: 'Generate rental agreement', color: '#1565C0', route: '/legal-workflow/rent-agreement' },
+    { icon: DescriptionIcon, title: 'Affidavit', description: 'Create affidavit document', color: '#00897B', route: '/legal-workflow/affidavit' },
+    { icon: ReceiptLongIcon, title: 'Legal Notice', description: 'Draft legal notice', color: '#6A1B9A', route: '/legal-workflow/legal-notice' },
+    { icon: ReportProblemIcon, title: 'Consumer Complaint', description: 'File consumer complaint', color: '#F57C00', route: '/legal-workflow/consumer-complaint' },
+    { icon: LocalPoliceIcon, title: 'FIR Help', description: 'FIR assistance', color: '#D32F2F', route: '/legal-workflow/fir-help' },
   ];
 
-  const recentDocuments = [
-    {
-      id: 1,
-      title: 'Rent Agreement - Mumbai',
-      date: '2 days ago',
-      status: 'Ready',
-    },
-    {
-      id: 2,
-      title: 'Affidavit Draft',
-      date: '1 week ago',
-      status: 'Draft',
-    },
-  ];
-
-  const upcomingConsultations = [
-    {
-      id: 1,
-      lawyer: 'Adv. Sharma',
-      specialty: 'Property Law',
-      date: 'Tomorrow, 3:00 PM',
-    },
-  ];
-
-  const handleBottomNavChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleBottomNavChange = (_event: React.SyntheticEvent, newValue: number) => {
     setBottomNavValue(newValue);
     const routes = ['/', '/lawyers', '/notifications', '/profile'];
-    if (routes[newValue]) {
-      navigate(routes[newValue]);
-    }
+    if (routes[newValue]) navigate(routes[newValue]);
   };
 
   return (
@@ -125,23 +104,20 @@ export default function HomeDashboard() {
       >
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Box>
-            <Typography variant="body2" sx={{ opacity: 0.9, mb: 0.5 }}>
-              {getGreeting()}
-            </Typography>
-            <Typography variant="h5" sx={{ fontWeight: 700 }}>
-              Welcome Back!
-            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.9, mb: 0.5 }}>{getGreeting()}</Typography>
+            {loadingUser ? (
+              <Skeleton variant="text" width={160} height={32} sx={{ bgcolor: 'rgba(255,255,255,0.2)' }} />
+            ) : (
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                {userName ? `Welcome, ${userName.split(' ')[0]}!` : 'Welcome Back!'}
+              </Typography>
+            )}
           </Box>
           <Avatar
-            sx={{
-              width: 48,
-              height: 48,
-              bgcolor: 'rgba(255, 255, 255, 0.2)',
-              cursor: 'pointer',
-            }}
+            sx={{ width: 48, height: 48, bgcolor: 'rgba(255, 255, 255, 0.2)', cursor: 'pointer' }}
             onClick={() => navigate('/profile')}
           >
-            <PersonIcon />
+            {userName ? userName.charAt(0).toUpperCase() : <PersonIcon />}
           </Avatar>
         </Box>
 
@@ -155,199 +131,134 @@ export default function HomeDashboard() {
               navigate(`/ai-assistant?q=${encodeURIComponent(searchQuery.trim())}`);
             }
           }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon sx={{ color: 'text.secondary' }} />
-              </InputAdornment>
-            ),
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: 'text.secondary' }} />
+                </InputAdornment>
+              ),
+            },
           }}
           sx={{
             backgroundColor: 'white',
             borderRadius: 3,
-            '& .MuiOutlinedInput-root': {
-              '& fieldset': {
-                border: 'none',
-              },
-            },
+            '& .MuiOutlinedInput-root': { '& fieldset': { border: 'none' } },
           }}
         />
       </Box>
 
       <Box sx={{ px: 3, mt: -3 }}>
         <Card
-          sx={{
-            background: 'linear-gradient(135deg, #00897B 0%, #00695C 100%)',
-            color: 'white',
-            mb: 3,
-            cursor: 'pointer',
-          }}
+          sx={{ background: 'linear-gradient(135deg, #00897B 0%, #00695C 100%)', color: 'white', mb: 3, cursor: 'pointer' }}
           onClick={() => navigate('/ai-assistant')}
         >
           <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box
-              sx={{
-                width: 56,
-                height: 56,
-                borderRadius: '14px',
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
+            <Box sx={{ width: 56, height: 56, borderRadius: '14px', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <SmartToyIcon sx={{ fontSize: 32 }} />
             </Box>
             <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" sx={{ mb: 0.5 }}>
-                AI Legal Assistant
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Get instant legal guidance
-              </Typography>
+              <Typography variant="h6" sx={{ mb: 0.5 }}>AI Legal Assistant</Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>Get instant legal guidance</Typography>
             </Box>
           </CardContent>
         </Card>
 
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Quick Actions
-        </Typography>
-
+        <Typography variant="h6" sx={{ mb: 2 }}>Quick Actions</Typography>
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 4 }}>
           {quickActions.map((action, index) => {
             const Icon = action.icon;
             return (
               <Card
                 key={index}
-                sx={{
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: 3,
-                  },
-                }}
+                sx={{ cursor: 'pointer', transition: 'all 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: 3 } }}
                 onClick={() => navigate(action.route)}
               >
                 <CardContent>
                   <Box
-                    sx={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: '12px',
-                      backgroundColor: `${action.color}15`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mb: 1.5,
-                    }}
+                    sx={{ width: 48, height: 48, borderRadius: '12px', backgroundColor: `${action.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1.5 }}
                   >
                     <Icon sx={{ fontSize: 26, color: action.color }} />
                   </Box>
-                  <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600 }}>
-                    {action.title}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    {action.description}
-                  </Typography>
+                  <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600 }}>{action.title}</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>{action.description}</Typography>
                 </CardContent>
               </Card>
             );
           })}
         </Box>
 
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Recent Documents
-        </Typography>
-
+        <Typography variant="h6" sx={{ mb: 2 }}>Recent Documents</Typography>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 4 }}>
-          {recentDocuments.map((doc) => (
-            <Card
-              key={doc.id}
-              sx={{ cursor: 'pointer' }}
-              onClick={() => navigate(`/document/${doc.id}`)}
-            >
-              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <DescriptionIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    {doc.title}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    {doc.date}
-                  </Typography>
-                </Box>
-                <Chip
-                  label={doc.status}
-                  size="small"
-                  color={doc.status === 'Ready' ? 'success' : 'default'}
-                  sx={{ fontWeight: 500 }}
-                />
-              </CardContent>
-            </Card>
-          ))}
-        </Box>
-
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Upcoming Consultations
-        </Typography>
-
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 4 }}>
-          {upcomingConsultations.length > 0 ? (
-            upcomingConsultations.map((consultation) => (
-              <Card key={consultation.id} sx={{ cursor: 'pointer' }} onClick={() => navigate('/lawyers')}>
+          {documents.length > 0 ? (
+            documents.map((doc) => (
+              <Card key={doc._id} sx={{ cursor: 'pointer' }} onClick={() => navigate(`/document/${doc._id}`)}>
                 <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <EventNoteIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                  <DescriptionIcon sx={{ fontSize: 32, color: 'primary.main' }} />
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                      {consultation.lawyer}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                      {consultation.specialty}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 500 }}>
-                      {consultation.date}
-                    </Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{formatDocType(doc.type)}</Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{timeAgo(doc.createdAt)}</Typography>
                   </Box>
+                  <Chip
+                    label={doc.status === 'generated' ? 'Ready' : 'Draft'}
+                    size="small"
+                    color={doc.status === 'generated' ? 'success' : 'default'}
+                    sx={{ fontWeight: 500 }}
+                  />
                 </CardContent>
               </Card>
             ))
           ) : (
-            <Card
-              sx={{ cursor: 'pointer', border: '1px dashed', borderColor: 'divider' }}
-              onClick={() => navigate('/lawyers')}
-            >
+            <Card sx={{ cursor: 'pointer', border: '1px dashed', borderColor: 'divider' }} onClick={() => navigate('/legal-workflow/rent-agreement')}>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <DescriptionIcon sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.4, mb: 1 }} />
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>No documents yet</Typography>
+                <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>Create your first document →</Typography>
+              </CardContent>
+            </Card>
+          )}
+        </Box>
+
+        <Typography variant="h6" sx={{ mb: 2 }}>Upcoming Consultations</Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 4 }}>
+          {consultations.length > 0 ? (
+            consultations.map((c) => {
+              const lawyer = typeof c.lawyerId === 'object' ? c.lawyerId : null;
+              return (
+                <Card key={c._id} sx={{ cursor: 'pointer' }} onClick={() => navigate('/lawyers')}>
+                  <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <EventNoteIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{lawyer?.name ?? 'Lawyer'}</Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>{lawyer?.specialty ?? ''}</Typography>
+                      <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 500 }}>
+                        {c.date} at {c.time}
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              );
+            })
+          ) : (
+            <Card sx={{ cursor: 'pointer', border: '1px dashed', borderColor: 'divider' }} onClick={() => navigate('/lawyers')}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <EventNoteIcon sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.4, mb: 1 }} />
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  No upcoming consultations
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>
-                  Book a lawyer →
-                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>No upcoming consultations</Typography>
+                <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>Book a lawyer →</Typography>
               </CardContent>
             </Card>
           )}
         </Box>
 
         <Card
-          sx={{
-            background: 'linear-gradient(135deg, #6A1B9A15 0%, #6A1B9A05 100%)',
-            border: '1px solid',
-            borderColor: '#6A1B9A30',
-            cursor: 'pointer',
-          }}
+          sx={{ background: 'linear-gradient(135deg, #6A1B9A15 0%, #6A1B9A05 100%)', border: '1px solid', borderColor: '#6A1B9A30', cursor: 'pointer' }}
           onClick={() => navigate('/subscription')}
         >
           <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <TrendingUpIcon sx={{ fontSize: 32, color: '#6A1B9A' }} />
             <Box sx={{ flex: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                Upgrade to Pro
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                Unlimited AI assistance & priority support
-              </Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>Upgrade to Pro</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Unlimited AI assistance & priority support</Typography>
             </Box>
           </CardContent>
         </Card>
@@ -355,37 +266,20 @@ export default function HomeDashboard() {
 
       <Fab
         color="primary"
-        sx={{
-          position: 'fixed',
-          bottom: 80,
-          right: 20,
-          boxShadow: 4,
-        }}
+        sx={{ position: 'fixed', bottom: 80, right: 20, boxShadow: 4 }}
         onClick={() => navigate('/ai-assistant')}
       >
         <SmartToyIcon />
       </Fab>
 
       <Paper
-        sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          boxShadow: '0px -4px 12px rgba(0, 0, 0, 0.1)',
-        }}
+        sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, borderTopLeftRadius: 20, borderTopRightRadius: 20, boxShadow: '0px -4px 12px rgba(0, 0, 0, 0.1)' }}
         elevation={3}
       >
         <BottomNavigation
           value={bottomNavValue}
           onChange={handleBottomNavChange}
-          sx={{
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            height: 70,
-          }}
+          sx={{ borderTopLeftRadius: 20, borderTopRightRadius: 20, height: 70 }}
         >
           <BottomNavigationAction label="Home" icon={<HomeIcon />} />
           <BottomNavigationAction label="Lawyers" icon={<GavelIcon />} />

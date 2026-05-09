@@ -102,8 +102,19 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
   res.json({ message: 'Document generated successfully', document: doc });
 });
 
-// GET /documents/:id/download
+// GET /documents/:id/download  — also accepts ?token= for browser download links
 router.get('/:id/download', async (req: AuthRequest, res: Response) => {
+  // Allow token via query string so browser <a href> downloads work
+  if (!req.userId && req.query.token) {
+    try {
+      const { verifyAccessToken } = await import('../utils/jwt');
+      const payload = verifyAccessToken(req.query.token as string);
+      req.userId = payload.userId;
+    } catch {
+      res.status(401).json({ message: 'Invalid token' });
+      return;
+    }
+  }
   const doc = await DocumentModel.findOne({ _id: req.params.id, userId: req.userId });
   if (!doc) { res.status(404).json({ message: 'Document not found' }); return; }
   if (!doc.pdfPath || !fs.existsSync(doc.pdfPath)) {

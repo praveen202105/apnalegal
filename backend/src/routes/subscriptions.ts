@@ -5,7 +5,6 @@ import User from '../models/User';
 import Notification from '../models/Notification';
 
 const router = Router();
-router.use(authenticate);
 
 const PLANS = [
   {
@@ -51,10 +50,13 @@ const PLANS = [
   },
 ];
 
-// GET /subscription/plans
+// GET /subscription/plans  — public, no auth required
 router.get('/plans', (_req, res) => {
   res.json(PLANS);
 });
+
+// All routes below require authentication
+router.use(authenticate);
 
 // GET /subscription/current
 router.get('/current', async (req: AuthRequest, res: Response) => {

@@ -4,7 +4,6 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Box } from '@mui/material';
 
-// Import screens
 import SplashScreen from './components/SplashScreen';
 import OnboardingScreens from './components/OnboardingScreens';
 import AuthScreen from './components/AuthScreen';
@@ -18,13 +17,13 @@ import NotificationsScreen from './components/NotificationsScreen';
 import UserProfile from './components/UserProfile';
 import SubscriptionPricing from './components/SubscriptionPricing';
 import SettingsScreen from './components/SettingsScreen';
+import { isAuthenticated, clearTokens, logout } from '../lib/api';
 
-// Material Design 3 Theme Configuration
 const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#1565C0', // Deep Blue
+      main: '#1565C0',
       light: '#5E92F3',
       dark: '#003C8F',
     },
@@ -32,15 +31,9 @@ const theme = createTheme({
       main: '#FFFFFF',
       contrastText: '#1565C0',
     },
-    success: {
-      main: '#4CAF50',
-    },
-    warning: {
-      main: '#FFA726',
-    },
-    error: {
-      main: '#EF5350',
-    },
+    success: { main: '#4CAF50' },
+    warning: { main: '#FFA726' },
+    error: { main: '#EF5350' },
     background: {
       default: '#F5F5F5',
       paper: '#FFFFFF',
@@ -52,30 +45,13 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    h4: {
-      fontWeight: 700,
-      fontSize: '1.75rem',
-    },
-    h5: {
-      fontWeight: 600,
-      fontSize: '1.5rem',
-    },
-    h6: {
-      fontWeight: 600,
-      fontSize: '1.25rem',
-    },
-    body1: {
-      fontSize: '1rem',
-      lineHeight: 1.6,
-    },
-    button: {
-      textTransform: 'none',
-      fontWeight: 600,
-    },
+    h4: { fontWeight: 700, fontSize: '1.75rem' },
+    h5: { fontWeight: 600, fontSize: '1.5rem' },
+    h6: { fontWeight: 600, fontSize: '1.25rem' },
+    body1: { fontSize: '1rem', lineHeight: 1.6 },
+    button: { textTransform: 'none', fontWeight: 600 },
   },
-  shape: {
-    borderRadius: 12,
-  },
+  shape: { borderRadius: 12 },
   shadows: [
     'none',
     '0px 2px 4px rgba(0, 0, 0, 0.05)',
@@ -106,34 +82,19 @@ const theme = createTheme({
   components: {
     MuiButton: {
       styleOverrides: {
-        root: {
-          borderRadius: 12,
-          padding: '12px 24px',
-          fontSize: '1rem',
-        },
+        root: { borderRadius: 12, padding: '12px 24px', fontSize: '1rem' },
         contained: {
           boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.08)',
-          '&:hover': {
-            boxShadow: '0px 6px 12px rgba(0, 0, 0, 0.12)',
-          },
+          '&:hover': { boxShadow: '0px 6px 12px rgba(0, 0, 0, 0.12)' },
         },
       },
     },
     MuiCard: {
-      styleOverrides: {
-        root: {
-          borderRadius: 16,
-          boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.08)',
-        },
-      },
+      styleOverrides: { root: { borderRadius: 16, boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.08)' } },
     },
     MuiTextField: {
       styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
-            borderRadius: 12,
-          },
-        },
+        root: { '& .MuiOutlinedInput-root': { borderRadius: 12 } },
       },
     },
   },
@@ -142,21 +103,14 @@ const theme = createTheme({
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [hasOnboarded, setHasOnboarded] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check localStorage for onboarding and auth status
     const onboarded = localStorage.getItem('hasOnboarded') === 'true';
-    const authenticated = localStorage.getItem('isAuthenticated') === 'true';
-
     setHasOnboarded(onboarded);
-    setIsAuthenticated(authenticated);
+    setAuthenticated(isAuthenticated());
 
-    // Show splash for 2 seconds
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 2000);
-
+    const timer = setTimeout(() => setShowSplash(false), 2000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -166,13 +120,13 @@ export default function App() {
   };
 
   const handleAuthSuccess = () => {
-    localStorage.setItem('isAuthenticated', 'true');
-    setIsAuthenticated(true);
+    setAuthenticated(true);
   };
 
-  const handleLogout = () => {
-    localStorage.setItem('isAuthenticated', 'false');
-    setIsAuthenticated(false);
+  const handleLogout = async () => {
+    await logout();
+    clearTokens();
+    setAuthenticated(false);
   };
 
   if (showSplash) {
@@ -187,27 +141,16 @@ export default function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{
-        minHeight: '100vh',
-        backgroundColor: 'background.default',
-        maxWidth: '100vw',
-        overflowX: 'hidden',
-      }}>
+      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', maxWidth: '100vw', overflowX: 'hidden' }}>
         <BrowserRouter>
           <Routes>
             {!hasOnboarded && (
-              <Route
-                path="/onboarding"
-                element={<OnboardingScreens onComplete={handleOnboardingComplete} />}
-              />
+              <Route path="/onboarding" element={<OnboardingScreens onComplete={handleOnboardingComplete} />} />
             )}
-            {!isAuthenticated && hasOnboarded && (
-              <Route
-                path="/auth"
-                element={<AuthScreen onAuthSuccess={handleAuthSuccess} />}
-              />
+            {!authenticated && hasOnboarded && (
+              <Route path="/auth" element={<AuthScreen onAuthSuccess={handleAuthSuccess} />} />
             )}
-            {isAuthenticated && (
+            {authenticated && (
               <>
                 <Route path="/" element={<HomeDashboard />} />
                 <Route path="/ai-assistant" element={<AIAssistant />} />
@@ -225,13 +168,7 @@ export default function App() {
               path="*"
               element={
                 <Navigate
-                  to={
-                    !hasOnboarded
-                      ? "/onboarding"
-                      : !isAuthenticated
-                        ? "/auth"
-                        : "/"
-                  }
+                  to={!hasOnboarded ? '/onboarding' : !authenticated ? '/auth' : '/'}
                   replace
                 />
               }
