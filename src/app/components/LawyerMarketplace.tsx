@@ -200,7 +200,7 @@ export default function LawyerMarketplace() {
                         size="small"
                         fullWidth
                         sx={{ py: 1 }}
-                        onClick={() => setSnackbar({ open: true, message: `${lawyer.name}'s full profile coming soon` })}
+                        onClick={() => navigate(`/lawyer/${lawyer._id}`)}
                       >
                         View Profile
                       </Button>

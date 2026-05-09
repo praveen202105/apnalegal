@@ -60,8 +60,8 @@ export default function UserProfile({ onLogout }: UserProfileProps) {
   }, []);
 
   const menuItems = [
-    { icon: DescriptionIcon, label: 'My Documents', description: 'View all documents', route: '__coming_soon__' },
-    { icon: FolderIcon, label: 'Saved Drafts', description: 'Continue your work', route: '__coming_soon__' },
+    { icon: DescriptionIcon, label: 'My Documents', description: 'View all documents', route: '/documents' },
+    { icon: FolderIcon, label: 'Saved Drafts', description: 'Continue your work', route: '/documents?tab=drafts' },
     { icon: CreditCardIcon, label: 'Subscription & Billing', description: 'Manage your plan', route: '/subscription' },
     { icon: SecurityIcon, label: 'Privacy & Security', description: 'Manage data & access', route: '/settings' },
     { icon: SettingsIcon, label: 'Settings', description: 'App preferences', route: '/settings' },
@@ -159,7 +159,7 @@ export default function UserProfile({ onLogout }: UserProfileProps) {
           fullWidth
           startIcon={<EditIcon />}
           sx={{ mb: 3, py: 1.5, borderRadius: 3 }}
-          onClick={() => setSnackbar({ open: true, message: 'Profile editing coming soon' })}
+          onClick={() => navigate('/edit-profile')}
         >
           Edit Profile
         </Button>
@@ -172,13 +172,7 @@ export default function UserProfile({ onLogout }: UserProfileProps) {
                 <Box key={index}>
                   <ListItem
                     sx={{ cursor: 'pointer', py: 2, '&:hover': { backgroundColor: 'action.hover' } }}
-                    onClick={() => {
-                      if (item.route === '__coming_soon__') {
-                        setSnackbar({ open: true, message: `${item.label} coming soon` });
-                      } else {
-                        navigate(item.route);
-                      }
-                    }}
+                    onClick={() => navigate(item.route)}
                   >
                     <ListItemIcon>
                       <Box

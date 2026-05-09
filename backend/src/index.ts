@@ -11,6 +11,7 @@ import bookingsRouter from './routes/bookings';
 import paymentsRouter from './routes/payments';
 import subscriptionsRouter from './routes/subscriptions';
 import notificationsRouter from './routes/notifications';
+import aiRouter from './routes/ai';
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use('/bookings', bookingsRouter);
 app.use('/payments', paymentsRouter);
 app.use('/subscription', subscriptionsRouter);
 app.use('/notifications', notificationsRouter);
+app.use('/ai', aiRouter);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date() }));
 

@@ -17,6 +17,9 @@ import NotificationsScreen from './components/NotificationsScreen';
 import UserProfile from './components/UserProfile';
 import SubscriptionPricing from './components/SubscriptionPricing';
 import SettingsScreen from './components/SettingsScreen';
+import LawyerProfile from './components/LawyerProfile';
+import EditProfile from './components/EditProfile';
+import DocumentsList from './components/DocumentsList';
 import { isAuthenticated, clearTokens, logout } from '../lib/api';
 
 const theme = createTheme({
@@ -162,6 +165,9 @@ export default function App() {
                 <Route path="/profile" element={<UserProfile onLogout={handleLogout} />} />
                 <Route path="/subscription" element={<SubscriptionPricing />} />
                 <Route path="/settings" element={<SettingsScreen />} />
+                <Route path="/lawyer/:id" element={<LawyerProfile />} />
+                <Route path="/edit-profile" element={<EditProfile />} />
+                <Route path="/documents" element={<DocumentsList />} />
               </>
             )}
             <Route

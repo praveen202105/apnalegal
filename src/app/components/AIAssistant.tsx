@@ -18,6 +18,7 @@ import MicIcon from '@mui/icons-material/Mic';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
+import { askAI } from '../../lib/api';
 
 interface Message {
   id: number;
@@ -56,7 +57,7 @@ export default function AIAssistant() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = (textOverride?: string) => {
+  const handleSendMessage = async (textOverride?: string) => {
     const text = (textOverride ?? inputText).trim();
     if (!text || isTyping) return;
 
@@ -71,16 +72,26 @@ export default function AIAssistant() {
     setInputText('');
     setIsTyping(true);
 
-    setTimeout(() => {
+    try {
+      const { response } = await askAI(text);
       const aiMessage: Message = {
         id: Date.now() + 1,
-        text: `I understand you're asking about "${text}". Based on Indian law, I can help you with that. This is a simulated response. In a real implementation, this would connect to an AI legal knowledge base trained on Indian legal statutes and case law.`,
+        text: response,
         sender: 'ai',
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
+    } catch {
+      const errMessage: Message = {
+        id: Date.now() + 1,
+        text: 'Sorry, I could not process your query. Please check your connection and try again.',
+        sender: 'ai',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleSuggestedPrompt = (prompt: string) => {

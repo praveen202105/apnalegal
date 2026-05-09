@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -15,243 +15,55 @@ import {
   Select,
   FormControl,
   Snackbar,
+  Skeleton,
 } from '@mui/material';
 import { useNavigate } from 'react-router';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { getPreferences, updatePreferences } from '../../lib/api';
+
+interface Prefs {
+  darkMode: boolean;
+  language: string;
+  notifications: boolean;
+  emailNotifications: boolean;
+}
 
 export default function SettingsScreen() {
   const navigate = useNavigate();
-  const [darkMode, setDarkMode] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '' });
-  const [notifications, setNotifications] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [language, setLanguage] = useState('english');
+  const [loading, setLoading] = useState(true);
+  const [prefs, setPrefs] = useState<Prefs>({ darkMode: false, language: 'english', notifications: true, emailNotifications: true });
 
-  const settingSections = [
-    {
-      title: 'Appearance',
-      items: [
-        {
-          label: 'Dark Mode',
-          description: 'Switch to dark theme',
-          type: 'switch',
-          value: darkMode,
-          onChange: setDarkMode,
-        },
-      ],
-    },
-    {
-      title: 'Notifications',
-      items: [
-        {
-          label: 'Push Notifications',
-          description: 'Receive app notifications',
-          type: 'switch',
-          value: notifications,
-          onChange: setNotifications,
-        },
-        {
-          label: 'Email Notifications',
-          description: 'Receive email updates',
-          type: 'switch',
-          value: emailNotifications,
-          onChange: setEmailNotifications,
-        },
-      ],
-    },
-    {
-      title: 'Language & Region',
-      items: [
-        {
-          label: 'Language',
-          description: 'Select your preferred language',
-          type: 'select',
-          value: language,
-          onChange: setLanguage,
-          options: [
-            { value: 'english', label: 'English' },
-            { value: 'hindi', label: 'हिंदी (Hindi)' },
-            { value: 'tamil', label: 'தமிழ் (Tamil)' },
-            { value: 'bengali', label: 'বাংলা (Bengali)' },
-            { value: 'marathi', label: 'मराठी (Marathi)' },
-          ],
-        },
-      ],
-    },
-    {
-      title: 'Privacy & Security',
-      items: [
-        {
-          label: 'Privacy Policy',
-          description: 'Read our privacy policy',
-          type: 'link',
-          route: '__coming_soon__',
-        },
-        {
-          label: 'Terms of Service',
-          description: 'Read terms and conditions',
-          type: 'link',
-          route: '__coming_soon__',
-        },
-        {
-          label: 'Data Management',
-          description: 'Manage your data',
-          type: 'link',
-          route: '__coming_soon__',
-        },
-      ],
-    },
-    {
-      title: 'About',
-      items: [
-        {
-          label: 'Version',
-          description: '1.0.0',
-          type: 'text',
-        },
-        {
-          label: 'Help & Support',
-          description: 'Get help',
-          type: 'link',
-          route: '__coming_soon__',
-        },
-        {
-          label: 'Rate NyayAI',
-          description: 'Share your feedback',
-          type: 'link',
-          route: '__coming_soon__',
-        },
-      ],
-    },
-  ];
+  useEffect(() => {
+    getPreferences()
+      .then((p) => setPrefs({ darkMode: p.darkMode ?? false, language: p.language || 'english', notifications: p.notifications ?? true, emailNotifications: p.emailNotifications ?? true }))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
-  const renderSettingItem = (item: any) => {
-    switch (item.type) {
-      case 'switch':
-        return (
-          <ListItem sx={{ px: 3, py: 2 }}>
-            <ListItemText
-              primary={
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  {item.label}
-                </Typography>
-              }
-              secondary={
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  {item.description}
-                </Typography>
-              }
-            />
-            <Switch
-              checked={item.value}
-              onChange={(e) => item.onChange(e.target.checked)}
-              color="primary"
-            />
-          </ListItem>
-        );
-
-      case 'select':
-        return (
-          <ListItem sx={{ px: 3, py: 2, display: 'block' }}>
-            <ListItemText
-              primary={
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                  {item.label}
-                </Typography>
-              }
-              secondary={
-                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
-                  {item.description}
-                </Typography>
-              }
-            />
-            <FormControl fullWidth size="small">
-              <Select
-                value={item.value}
-                onChange={(e) => item.onChange(e.target.value)}
-                sx={{
-                  borderRadius: 2,
-                }}
-              >
-                {item.options?.map((option: any) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </ListItem>
-        );
-
-      case 'link':
-        return (
-          <ListItem
-            sx={{
-              px: 3,
-              py: 2,
-              cursor: 'pointer',
-              '&:hover': {
-                backgroundColor: 'action.hover',
-              },
-            }}
-            onClick={() => {
-              if (!item.route) return;
-              if (item.route === '__coming_soon__') {
-                setSnackbar({ open: true, message: `${item.label} coming soon` });
-              } else {
-                navigate(item.route);
-              }
-            }}
-          >
-            <ListItemText
-              primary={
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  {item.label}
-                </Typography>
-              }
-              secondary={
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  {item.description}
-                </Typography>
-              }
-            />
-            <ChevronRightIcon sx={{ color: 'text.secondary' }} />
-          </ListItem>
-        );
-
-      case 'text':
-        return (
-          <ListItem sx={{ px: 3, py: 2 }}>
-            <ListItemText
-              primary={
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  {item.label}
-                </Typography>
-              }
-            />
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {item.description}
-            </Typography>
-          </ListItem>
-        );
-
-      default:
-        return null;
+  const savePrefs = useCallback(async (update: Partial<Prefs>) => {
+    const next = { ...prefs, ...update };
+    setPrefs(next);
+    try {
+      await updatePreferences(next);
+      setSnackbar({ open: true, message: 'Preference saved' });
+    } catch {
+      setSnackbar({ open: true, message: 'Failed to save preference' });
     }
-  };
+  }, [prefs]);
+
+  const staticLinks = [
+    { label: 'Privacy Policy', description: 'Read our privacy policy', action: () => setSnackbar({ open: true, message: 'Privacy Policy coming soon' }) },
+    { label: 'Terms of Service', description: 'Read terms and conditions', action: () => setSnackbar({ open: true, message: 'Terms of Service coming soon' }) },
+    { label: 'Data Management', description: 'Manage your data', action: () => setSnackbar({ open: true, message: 'Data Management coming soon' }) },
+    { label: 'Help & Support', description: 'Get help', action: () => setSnackbar({ open: true, message: 'Help & Support coming soon' }) },
+    { label: 'Rate NyayAI', description: 'Share your feedback', action: () => setSnackbar({ open: true, message: 'Rate us on the App Store!' }) },
+  ];
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', pb: 3 }}>
-      <AppBar
-        position="static"
-        elevation={0}
-        sx={{
-          backgroundColor: 'white',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
+      <AppBar position="static" elevation={0} sx={{ backgroundColor: 'white', borderBottom: '1px solid', borderColor: 'divider' }}>
         <Toolbar>
           <IconButton edge="start" onClick={() => navigate('/profile')} sx={{ mr: 2 }}>
             <ArrowBackIcon />
@@ -263,43 +75,100 @@ export default function SettingsScreen() {
       </AppBar>
 
       <Box sx={{ px: 3, pt: 3 }}>
-        {settingSections.map((section, sectionIndex) => (
-          <Box key={sectionIndex} sx={{ mb: 3 }}>
-            <Typography
-              variant="overline"
-              sx={{
-                color: 'text.secondary',
-                fontWeight: 600,
-                display: 'block',
-                mb: 1,
-                px: 1,
-              }}
-            >
-              {section.title}
-            </Typography>
+        {/* Appearance */}
+        <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', mb: 1, px: 1 }}>Appearance</Typography>
+        <Card sx={{ mb: 3 }}>
+          <List sx={{ py: 0 }}>
+            <ListItem sx={{ px: 3, py: 2 }}>
+              <ListItemText
+                primary={<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Dark Mode</Typography>}
+                secondary={<Typography variant="caption" sx={{ color: 'text.secondary' }}>Switch to dark theme</Typography>}
+              />
+              {loading ? <Skeleton variant="rounded" width={44} height={24} /> : (
+                <Switch checked={prefs.darkMode} onChange={(e) => savePrefs({ darkMode: e.target.checked })} color="primary" />
+              )}
+            </ListItem>
+          </List>
+        </Card>
 
-            <Card>
-              <List sx={{ py: 0 }}>
-                {section.items.map((item, itemIndex) => (
-                  <Box key={itemIndex}>
-                    {renderSettingItem(item)}
-                    {itemIndex < section.items.length - 1 && <Divider />}
-                  </Box>
-                ))}
-              </List>
-            </Card>
-          </Box>
-        ))}
+        {/* Notifications */}
+        <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', mb: 1, px: 1 }}>Notifications</Typography>
+        <Card sx={{ mb: 3 }}>
+          <List sx={{ py: 0 }}>
+            <ListItem sx={{ px: 3, py: 2 }}>
+              <ListItemText
+                primary={<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Push Notifications</Typography>}
+                secondary={<Typography variant="caption" sx={{ color: 'text.secondary' }}>Receive app notifications</Typography>}
+              />
+              {loading ? <Skeleton variant="rounded" width={44} height={24} /> : (
+                <Switch checked={prefs.notifications} onChange={(e) => savePrefs({ notifications: e.target.checked })} color="primary" />
+              )}
+            </ListItem>
+            <Divider />
+            <ListItem sx={{ px: 3, py: 2 }}>
+              <ListItemText
+                primary={<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Email Notifications</Typography>}
+                secondary={<Typography variant="caption" sx={{ color: 'text.secondary' }}>Receive email updates</Typography>}
+              />
+              {loading ? <Skeleton variant="rounded" width={44} height={24} /> : (
+                <Switch checked={prefs.emailNotifications} onChange={(e) => savePrefs({ emailNotifications: e.target.checked })} color="primary" />
+              )}
+            </ListItem>
+          </List>
+        </Card>
 
-        <Typography
-          variant="caption"
-          sx={{
-            display: 'block',
-            textAlign: 'center',
-            color: 'text.secondary',
-            mt: 4,
-          }}
-        >
+        {/* Language */}
+        <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', mb: 1, px: 1 }}>Language & Region</Typography>
+        <Card sx={{ mb: 3 }}>
+          <ListItem sx={{ px: 3, py: 2, display: 'block' }}>
+            <ListItemText
+              primary={<Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Language</Typography>}
+              secondary={<Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>Select your preferred language</Typography>}
+            />
+            {loading ? <Skeleton variant="rounded" height={40} /> : (
+              <FormControl fullWidth size="small">
+                <Select value={prefs.language} onChange={(e) => savePrefs({ language: e.target.value })} sx={{ borderRadius: 2 }}>
+                  <MenuItem value="english">English</MenuItem>
+                  <MenuItem value="hindi">हिंदी (Hindi)</MenuItem>
+                  <MenuItem value="tamil">தமிழ் (Tamil)</MenuItem>
+                  <MenuItem value="bengali">বাংলা (Bengali)</MenuItem>
+                  <MenuItem value="marathi">मराठी (Marathi)</MenuItem>
+                </Select>
+              </FormControl>
+            )}
+          </ListItem>
+        </Card>
+
+        {/* Privacy & About */}
+        <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', mb: 1, px: 1 }}>Privacy & About</Typography>
+        <Card sx={{ mb: 3 }}>
+          <List sx={{ py: 0 }}>
+            {staticLinks.map((link, index) => (
+              <Box key={link.label}>
+                <ListItem
+                  sx={{ px: 3, py: 2, cursor: 'pointer', '&:hover': { backgroundColor: 'action.hover' } }}
+                  onClick={link.action}
+                >
+                  <ListItemText
+                    primary={<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{link.label}</Typography>}
+                    secondary={<Typography variant="caption" sx={{ color: 'text.secondary' }}>{link.description}</Typography>}
+                  />
+                  <ChevronRightIcon sx={{ color: 'text.secondary' }} />
+                </ListItem>
+                {index < staticLinks.length - 1 && <Divider />}
+              </Box>
+            ))}
+          </List>
+        </Card>
+
+        <Card sx={{ mb: 3 }}>
+          <ListItem sx={{ px: 3, py: 2 }}>
+            <ListItemText primary={<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Version</Typography>} />
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>1.0.0</Typography>
+          </ListItem>
+        </Card>
+
+        <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', color: 'text.secondary', mt: 4 }}>
           © 2026 NyayAI. All rights reserved.
         </Typography>
       </Box>

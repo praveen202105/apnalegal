@@ -232,3 +232,28 @@ export const markAllNotificationsRead = () =>
 
 export const deleteNotification = (id: string) =>
   json(`/notifications/${id}`, { method: 'DELETE' });
+
+// ── AI Assistant ──────────────────────────────────────────────────────────────
+export const askAI = (query: string) =>
+  json<{ response: string }>('/ai/query', {
+    method: 'POST',
+    body: JSON.stringify({ query }),
+  });
+
+// ── Lawyer Reviews ────────────────────────────────────────────────────────────
+export interface Review {
+  _id: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  userId: { name: string } | string;
+}
+
+export const getLawyerReviews = (lawyerId: string) =>
+  json<Review[]>(`/lawyers/${lawyerId}/reviews`);
+
+export const submitReview = (lawyerId: string, rating: number, comment: string) =>
+  json<Review>(`/lawyers/${lawyerId}/review`, {
+    method: 'POST',
+    body: JSON.stringify({ rating, comment }),
+  });

@@ -150,31 +150,18 @@ export default function DocumentPreview() {
                   <Typography variant="h6" align="center" sx={{ mb: 3, fontWeight: 700 }}>
                     {formatDocType(doc.type).toUpperCase()}
                   </Typography>
-                  {formData.landlordName && (
-                    <Typography variant="body2" sx={{ mb: 2, lineHeight: 1.8 }}>
-                      <strong>LANDLORD:</strong> {formData.landlordName}
-                    </Typography>
-                  )}
-                  {formData.tenantName && (
-                    <Typography variant="body2" sx={{ mb: 2, lineHeight: 1.8 }}>
-                      <strong>TENANT:</strong> {formData.tenantName}
-                    </Typography>
-                  )}
-                  {formData.propertyAddress && (
-                    <Typography variant="body2" sx={{ mb: 2, lineHeight: 1.8 }}>
-                      <strong>PROPERTY:</strong> {formData.propertyAddress}
-                    </Typography>
-                  )}
-                  {formData.monthlyRent && (
-                    <Typography variant="body2" sx={{ mb: 2, lineHeight: 1.8 }}>
-                      <strong>MONTHLY RENT:</strong> ₹{parseInt(formData.monthlyRent).toLocaleString('en-IN')}
-                    </Typography>
-                  )}
-                  {formData.tenurePeriod && (
-                    <Typography variant="body2" sx={{ mb: 2, lineHeight: 1.8 }}>
-                      <strong>TENURE:</strong> {formData.tenurePeriod} months
-                    </Typography>
-                  )}
+                  {Object.entries(formData).map(([key, value]) => {
+                    if (!value) return null;
+                    const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
+                    const displayValue = key.toLowerCase().includes('rent') || key.toLowerCase().includes('amount') || key.toLowerCase().includes('deposit')
+                      ? `₹${parseInt(value).toLocaleString('en-IN')}`
+                      : value;
+                    return (
+                      <Typography key={key} variant="body2" sx={{ mb: 1.5, lineHeight: 1.8 }}>
+                        <strong>{label.toUpperCase()}:</strong> {displayValue}
+                      </Typography>
+                    );
+                  })}
                   <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 4, textAlign: 'center' }}>
                     {doc.status === 'generated'
                       ? '[Document generated — download the PDF for the full version]'
