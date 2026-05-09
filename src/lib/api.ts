@@ -2,16 +2,13 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 // Token storage
 export const getAccessToken = () => localStorage.getItem('accessToken');
-export const getRefreshToken = () => localStorage.getItem('refreshToken');
 
-export function setTokens(accessToken: string, refreshToken: string) {
+export function setTokens(accessToken: string) {
   localStorage.setItem('accessToken', accessToken);
-  localStorage.setItem('refreshToken', refreshToken);
 }
 
 export function clearTokens() {
   localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
 }
 
 export function isAuthenticated() {
@@ -26,26 +23,25 @@ async function apiFetch(path: string, options: RequestInit = {}): Promise<Respon
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers, credentials: 'include' });
 
   if (res.status === 401) {
     // Try refresh
-    const refreshToken = getRefreshToken();
-    if (refreshToken) {
-      const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
-      });
-      if (refreshRes.ok) {
-        const { accessToken } = await refreshRes.json();
-        localStorage.setItem('accessToken', accessToken);
-        headers['Authorization'] = `Bearer ${accessToken}`;
-        return fetch(`${BASE_URL}${path}`, { ...options, headers });
-      }
+    const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    
+    if (refreshRes.ok) {
+      const { accessToken } = await refreshRes.json();
+      localStorage.setItem('accessToken', accessToken);
+      headers['Authorization'] = `Bearer ${accessToken}`;
+      return fetch(`${BASE_URL}${path}`, { ...options, headers, credentials: 'include' });
+    } else {
+      clearTokens();
+      window.location.href = '/auth';
     }
-    clearTokens();
-    window.location.href = '/auth';
   }
 
   return res;
@@ -68,7 +64,7 @@ export const sendOtp = (phone: string) =>
   });
 
 export const verifyOtp = (phone: string, otp: string) =>
-  json<{ accessToken: string; refreshToken: string; user: { name: string; phone: string } }>(
+  json<{ accessToken: string; user: { name: string; phone: string } }>(
     '/auth/verify-otp',
     {
       method: 'POST',
@@ -77,7 +73,7 @@ export const verifyOtp = (phone: string, otp: string) =>
   );
 
 export const googleLogin = (googleToken: string) =>
-  json<{ accessToken: string; refreshToken: string; user: { name: string; email: string } }>('/auth/google', {
+  json<{ accessToken: string; user: { name: string; email: string } }>('/auth/google', {
     method: 'POST',
     body: JSON.stringify({ googleToken }),
   });

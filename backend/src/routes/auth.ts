@@ -132,7 +132,14 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
   user.refreshToken = refreshToken;
   await user.save();
 
-  res.json({ accessToken, refreshToken, user: { id: user._id, phone, name: user.name } });
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  });
+
+  res.json({ accessToken, user: { id: user._id, phone, name: user.name } });
 });
 
 // POST /auth/google
@@ -165,7 +172,14 @@ router.post('/google', googleAuthLimiter, async (req: Request, res: Response) =>
     user.refreshToken = refreshToken;
     await user.save();
 
-    res.json({ accessToken, refreshToken, user: { id: user._id, name: user.name, email: user.email } });
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    res.json({ accessToken, user: { id: user._id, name: user.name, email: user.email } });
   } catch (err) {
     res.status(400).json({ message: 'Invalid Google token' });
   }
@@ -173,7 +187,7 @@ router.post('/google', googleAuthLimiter, async (req: Request, res: Response) =>
 
 // POST /auth/refresh
 router.post('/refresh', async (req: Request, res: Response) => {
-  const { refreshToken } = req.body;
+  const refreshToken = req.cookies.refreshToken;
   if (!refreshToken) {
     res.status(400).json({ message: 'Refresh token required' });
     return;
@@ -197,6 +211,11 @@ router.post('/refresh', async (req: Request, res: Response) => {
 // POST /auth/logout
 router.post('/logout', authenticate, async (req: AuthRequest, res: Response) => {
   await User.findByIdAndUpdate(req.userId, { refreshToken: '' });
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+  });
   res.json({ message: 'Logged out successfully' });
 });
 

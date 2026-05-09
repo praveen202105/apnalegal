@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { connectDB } from './config/db';
 
 import authRouter from './routes/auth';
@@ -15,8 +16,9 @@ import aiRouter from './routes/ai';
 
 const app = express();
 
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
+app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5174', credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 
 app.use('/auth', authRouter);
 app.use('/user', userRouter);

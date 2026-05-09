@@ -18,6 +18,20 @@ const DOCTYPE_LABELS: Record<string, string> = {
   'fir-help': 'FIR Help',
 };
 
+const DOCUMENT_SCHEMAS: Record<string, z.ZodTypeAny> = {
+  'rent-agreement': z.object({
+    landlordName: z.string().min(2, "Landlord name is required"),
+    tenantName: z.string().min(2, "Tenant name is required"),
+    propertyAddress: z.string().min(5, "Property address is required"),
+    monthlyRent: z.string().regex(/^\d+$/, "Monthly rent must be a number"),
+    securityDeposit: z.string().regex(/^\d+$/, "Security deposit must be a number"),
+    tenurePeriod: z.string().regex(/^\d+$/, "Tenure period must be a number"),
+    startDate: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid start date" }),
+    city: z.string().min(2, "City is required"),
+    state: z.string().min(2, "State is required"),
+  }).catchall(z.string().optional()),
+};
+
 // GET /documents
 router.get('/', async (req: AuthRequest, res: Response) => {
   const docs = await DocumentModel.find({ userId: req.userId }).sort({ updatedAt: -1 });
@@ -32,13 +46,24 @@ router.get('/drafts', async (req: AuthRequest, res: Response) => {
 
 // POST /documents
 router.post('/', async (req: AuthRequest, res: Response) => {
-  const schema = z.object({
+  const baseSchema = z.object({
     type: z.string(),
     formData: z.record(z.string()).optional(),
     status: z.enum(['draft', 'generated']).optional(),
   });
-  const parsed = schema.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ message: 'Invalid data' }); return; }
+  
+  const parsed = baseSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ message: 'Invalid base data', errors: parsed.error.format() }); return; }
+
+  // If the document is being generated (or we just want strict validation for known types)
+  if (parsed.data.type in DOCUMENT_SCHEMAS && parsed.data.formData) {
+    const specificSchema = DOCUMENT_SCHEMAS[parsed.data.type];
+    const formDataValidation = specificSchema.safeParse(parsed.data.formData);
+    if (!formDataValidation.success) {
+      res.status(400).json({ message: 'Invalid form data', errors: formDataValidation.error.format() });
+      return;
+    }
+  }
 
   const title = DOCTYPE_LABELS[parsed.data.type] || parsed.data.type;
   const doc = await DocumentModel.create({
@@ -61,16 +86,28 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
 // PUT /documents/:id
 router.put('/:id', async (req: AuthRequest, res: Response) => {
-  const schema = z.object({ formData: z.record(z.string()).optional() });
-  const parsed = schema.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ message: 'Invalid data' }); return; }
+  const baseSchema = z.object({ formData: z.record(z.string()).optional() });
+  const parsed = baseSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ message: 'Invalid data format' }); return; }
+
+  const docToUpdate = await DocumentModel.findOne({ _id: req.params.id, userId: req.userId });
+  if (!docToUpdate) { res.status(404).json({ message: 'Document not found' }); return; }
+
+  if (docToUpdate.type in DOCUMENT_SCHEMAS && parsed.data.formData) {
+    const specificSchema = DOCUMENT_SCHEMAS[docToUpdate.type];
+    const formDataValidation = specificSchema.safeParse(parsed.data.formData);
+    if (!formDataValidation.success) {
+      res.status(400).json({ message: 'Invalid form data', errors: formDataValidation.error.format() });
+      return;
+    }
+  }
 
   const doc = await DocumentModel.findOneAndUpdate(
     { _id: req.params.id, userId: req.userId },
     { formData: parsed.data.formData },
     { new: true }
   );
-  if (!doc) { res.status(404).json({ message: 'Document not found' }); return; }
+  
   res.json(doc);
 });
 

@@ -48,8 +48,8 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
     setLoading(true);
     setError('');
     try {
-      const { accessToken, refreshToken } = await verifyOtp(phoneNumber, otp);
-      setTokens(accessToken, refreshToken);
+      const { accessToken } = await verifyOtp(phoneNumber, otp);
+      setTokens(accessToken);
       onAuthSuccess();
       navigate('/');
     } catch (err: unknown) {
@@ -64,8 +64,8 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
       setLoading(true);
       setError('');
       try {
-        const { accessToken, refreshToken } = await googleLogin(tokenResponse.access_token);
-        setTokens(accessToken, refreshToken);
+        const { accessToken } = await googleLogin(tokenResponse.access_token);
+        setTokens(accessToken);
         onAuthSuccess();
         navigate('/');
       } catch (err: unknown) {
