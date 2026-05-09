@@ -169,10 +169,9 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
   if (doc.pdfPath.startsWith('http')) {
-    const response = await fetch(doc.pdfPath);
-    if (!response.ok) { res.status(500).json({ message: 'Failed to retrieve PDF from cloud' }); return; }
-    const arrayBuffer = await response.arrayBuffer();
-    res.send(Buffer.from(arrayBuffer));
+    // Redirect directly to the Cloudinary URL to let the browser handle it and save backend bandwidth
+    res.redirect(doc.pdfPath);
+    return;
   } else {
     if (!fs.existsSync(doc.pdfPath)) {
       res.status(400).json({ message: 'PDF file missing on server.' });
