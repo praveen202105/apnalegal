@@ -6,6 +6,7 @@ export const DOCTYPE_LABELS: Record<string, string> = {
   'legal-notice': 'Legal Notice',
   'consumer-complaint': 'Consumer Complaint',
   'fir-help': 'FIR Help',
+  'dispute': 'Dispute',
   'will': 'Will',
   'custom': 'Custom Document',
 };

@@ -31,6 +31,7 @@ import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import LocalPoliceIcon from '@mui/icons-material/LocalPolice';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import { getMe, getDocuments, getConsultationRequests, listDocumentRequests, type ConsultationRequest, type DocumentRequest } from '../../lib/api';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 
@@ -102,6 +103,7 @@ export default function HomeDashboard() {
     { icon: ReceiptLongIcon, title: 'Legal Notice', description: 'Draft legal notice', color: '#6A1B9A', route: '/legal-workflow/legal-notice' },
     { icon: ReportProblemIcon, title: 'Consumer Complaint', description: 'File consumer complaint', color: '#F57C00', route: '/legal-workflow/consumer-complaint' },
     { icon: LocalPoliceIcon, title: 'FIR Help', description: 'FIR assistance', color: '#D32F2F', route: '/legal-workflow/fir-help' },
+    { icon: AccountBalanceIcon, title: 'Dispute/Bail', description: 'Dispute and bail intake', color: '#455A64', route: '/legal-workflow/dispute' },
   ];
 
   const handleBottomNavChange = (_event: React.SyntheticEvent, newValue: number) => {

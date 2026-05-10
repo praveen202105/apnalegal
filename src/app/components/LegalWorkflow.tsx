@@ -25,7 +25,7 @@ import { useNavigate, useParams } from 'react-router';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import { createDocument, generateDocument } from '../../lib/api';
+import { createDocument, generateDocument, getMe } from '../../lib/api';
 
 function formatDocumentType(type: string | undefined): string {
   if (!type) return 'Legal Document';
@@ -402,12 +402,357 @@ function firHelpConfig(): DocConfig {
   };
 }
 
+const DISPUTE_SPECIFIC_FIELDS = [
+  'bailType', 'custodyStatus', 'arrestDate', 'firNumber', 'allegedOffences', 'priorBailStatus', 'coAccusedDetails', 'medicalFamilyGrounds', 'suretyAvailability',
+  'propertyAddress', 'propertyType', 'ownershipStatus', 'possessionStatus', 'propertyValue', 'propertyDocuments',
+  'familyMatter', 'marriageDate', 'childrenDetails', 'livingArrangement', 'maintenanceNeeded',
+  'productService', 'purchaseDate', 'sellerName', 'amountPaid', 'complaintMade',
+  'employerName', 'jobTitle', 'employmentPeriod', 'salaryDues', 'terminationDate',
+  'amountClaimed', 'transactionDate', 'paymentMode', 'agreementProof', 'repaymentPromise',
+  'offenceNature', 'policeComplaintStatus', 'accusedDetails', 'threatStatus',
+  'cyberPlatform', 'transactionId', 'cyberLossAmount', 'accountDetails', 'digitalEvidence',
+  'issueSubject',
+];
+
+const DISPUTE_REQUIRED_FIELDS: Record<string, Record<number, string[]>> = {
+  Bail: {
+    0: ['disputeType', 'bailType', 'custodyStatus'],
+    1: ['applicantName', 'city', 'state', 'policeStation', 'courtName'],
+    2: ['allegedOffences', 'caseFacts'],
+    3: ['reliefRequested'],
+  },
+  'Property Dispute': {
+    0: ['disputeType'],
+    1: ['applicantName', 'opponentName', 'city', 'state'],
+    2: ['propertyAddress', 'ownershipStatus', 'possessionStatus', 'caseFacts'],
+    3: ['reliefRequested'],
+  },
+  'Family Dispute': {
+    0: ['disputeType'],
+    1: ['applicantName', 'opponentName', 'relationship', 'city', 'state'],
+    2: ['familyMatter', 'caseFacts'],
+    3: ['reliefRequested'],
+  },
+  'Consumer Dispute': {
+    0: ['disputeType'],
+    1: ['applicantName', 'opponentName', 'city', 'state'],
+    2: ['productService', 'purchaseDate', 'amountPaid', 'caseFacts'],
+    3: ['reliefRequested'],
+  },
+  'Employment Dispute': {
+    0: ['disputeType'],
+    1: ['applicantName', 'city', 'state'],
+    2: ['employerName', 'jobTitle', 'caseFacts'],
+    3: ['reliefRequested'],
+  },
+  'Money Recovery': {
+    0: ['disputeType'],
+    1: ['applicantName', 'opponentName', 'city', 'state'],
+    2: ['amountClaimed', 'transactionDate', 'caseFacts'],
+    3: ['reliefRequested'],
+  },
+  'Criminal Complaint': {
+    0: ['disputeType'],
+    1: ['applicantName', 'opponentName', 'city', 'state', 'policeStation'],
+    2: ['offenceNature', 'caseFacts'],
+    3: ['reliefRequested'],
+  },
+  'Cyber Crime': {
+    0: ['disputeType'],
+    1: ['applicantName', 'city', 'state', 'policeStation'],
+    2: ['cyberPlatform', 'caseFacts'],
+    3: ['reliefRequested'],
+  },
+  Other: {
+    0: ['disputeType'],
+    1: ['applicantName', 'city', 'state'],
+    2: ['issueSubject', 'caseFacts'],
+    3: ['reliefRequested'],
+  },
+};
+
+function disputeConfig(): DocConfig {
+  const disputeTypes = ['Bail', 'Property Dispute', 'Family Dispute', 'Consumer Dispute', 'Employment Dispute', 'Money Recovery', 'Criminal Complaint', 'Cyber Crime', 'Other'];
+  const bailTypes = ['Regular Bail', 'Anticipatory Bail', 'Interim Bail', 'Default / Statutory Bail'];
+  const custodyOptions = ['Not arrested', 'Arrested / in custody', 'Released on interim protection', 'Notice received', 'Unknown'];
+  const urgencyOptions = ['Immediate', 'Within 24 hours', 'This week', 'Flexible'];
+  const nextSteps = ['Lawyer consultation', 'Draft application', 'Send notice', 'File complaint', 'Court filing guidance', 'Other'];
+  const stageOptions = ['Before filing', 'Notice received', 'Police complaint filed', 'FIR registered', 'Court case pending', 'Settlement talks', 'Order passed', 'Other'];
+
+  const renderField = (
+    name: string,
+    label: string,
+    formData: FormData,
+    onChange: (field: string, value: string) => void,
+    options?: string[],
+    props: Record<string, unknown> = {}
+  ) => (
+    <TextField
+      label={label}
+      value={formData[name] || ''}
+      onChange={(e) => onChange(name, e.target.value)}
+      select={Boolean(options)}
+      fullWidth
+      {...props}
+    >
+      {options?.map((option) => <MenuItem key={option} value={option}>{option}</MenuItem>)}
+    </TextField>
+  );
+
+  return {
+    steps: ['Dispute Type', 'People & Location', 'Case Details', 'Relief & Documents'],
+    defaultFormData: {
+      disputeType: '',
+      bailType: '',
+      custodyStatus: '',
+      arrestDate: '',
+      applicantName: '',
+      opponentName: '',
+      relationship: '',
+      applicantAddress: '',
+      city: '',
+      state: '',
+      policeStation: '',
+      courtName: '',
+      firNumber: '',
+      caseNumber: '',
+      allegedOffences: '',
+      propertyAddress: '',
+      propertyType: '',
+      ownershipStatus: '',
+      possessionStatus: '',
+      propertyValue: '',
+      propertyDocuments: '',
+      familyMatter: '',
+      marriageDate: '',
+      childrenDetails: '',
+      livingArrangement: '',
+      maintenanceNeeded: '',
+      productService: '',
+      purchaseDate: '',
+      sellerName: '',
+      amountPaid: '',
+      complaintMade: '',
+      employerName: '',
+      jobTitle: '',
+      employmentPeriod: '',
+      salaryDues: '',
+      terminationDate: '',
+      amountClaimed: '',
+      transactionDate: '',
+      paymentMode: '',
+      agreementProof: '',
+      repaymentPromise: '',
+      offenceNature: '',
+      policeComplaintStatus: '',
+      accusedDetails: '',
+      threatStatus: '',
+      cyberPlatform: '',
+      transactionId: '',
+      cyberLossAmount: '',
+      accountDetails: '',
+      digitalEvidence: '',
+      issueSubject: '',
+      incidentDate: '',
+      currentStage: '',
+      caseFacts: '',
+      priorBailStatus: '',
+      coAccusedDetails: '',
+      medicalFamilyGrounds: '',
+      suretyAvailability: '',
+      reliefRequested: '',
+      urgency: '',
+      supportingDocuments: '',
+      witnessesEvidence: '',
+      preferredNextStep: '',
+    },
+    autofillData: {
+      urgency: 'Immediate',
+      currentStage: 'Before filing',
+      preferredNextStep: 'Lawyer consultation',
+    },
+    requiredFields: {
+      0: ['disputeType'],
+      1: ['applicantName', 'city', 'state'],
+      2: ['caseFacts'],
+      3: ['reliefRequested'],
+    },
+    renderStep: (step, formData, onChange) => {
+      const isBail = formData.disputeType === 'Bail';
+      const selectedType = formData.disputeType || 'Other';
+
+      if (step === 0) return (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <TextField label="Dispute / Legal Help Type" value={formData.disputeType} onChange={(e) => onChange('disputeType', e.target.value)} select fullWidth>
+            {disputeTypes.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+          </TextField>
+          {isBail && (
+            <>
+              <TextField label="Bail Type" value={formData.bailType} onChange={(e) => onChange('bailType', e.target.value)} select fullWidth>
+                {bailTypes.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+              </TextField>
+              <TextField label="Custody / Arrest Status" value={formData.custodyStatus} onChange={(e) => onChange('custodyStatus', e.target.value)} select fullWidth>
+                {custodyOptions.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+              </TextField>
+              <TextField label="Arrest Date (if applicable)" value={formData.arrestDate} onChange={(e) => onChange('arrestDate', e.target.value)} type="date" fullWidth slotProps={{ inputLabel: { shrink: true } }} />
+              <Alert severity="warning" icon={false}>
+                Bail depends on the offence, custody status, court jurisdiction, and case facts. Review this with a lawyer before filing.
+              </Alert>
+            </>
+          )}
+        </Box>
+      );
+
+      if (step === 1) return (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <TextField label="Applicant / Client Full Name" value={formData.applicantName} onChange={(e) => onChange('applicantName', e.target.value)} fullWidth />
+          {!['Employment Dispute', 'Cyber Crime'].includes(selectedType) && (
+            <TextField label={isBail ? 'Complainant / State / Opposite Party' : 'Opponent / Respondent Name'} value={formData.opponentName} onChange={(e) => onChange('opponentName', e.target.value)} fullWidth />
+          )}
+          {!['Consumer Dispute', 'Cyber Crime'].includes(selectedType) && (
+            <TextField label="Relationship / Role" value={formData.relationship} onChange={(e) => onChange('relationship', e.target.value)} fullWidth placeholder="e.g. Accused, Complainant, Tenant, Employer, Spouse, Lender" />
+          )}
+          <TextField label="Applicant Address" value={formData.applicantAddress} onChange={(e) => onChange('applicantAddress', e.target.value)} multiline rows={2} fullWidth />
+          <TextField label="City" value={formData.city} onChange={(e) => onChange('city', e.target.value)} fullWidth />
+          <TextField label="State" value={formData.state} onChange={(e) => onChange('state', e.target.value)} select fullWidth>
+            {STATES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+          </TextField>
+          {['Bail', 'Criminal Complaint', 'Cyber Crime'].includes(selectedType) && (
+            <TextField label="Police Station" value={formData.policeStation} onChange={(e) => onChange('policeStation', e.target.value)} fullWidth />
+          )}
+          {['Bail', 'Property Dispute', 'Family Dispute', 'Money Recovery'].includes(selectedType) && (
+            <TextField label="Court Name / Jurisdiction" value={formData.courtName} onChange={(e) => onChange('courtName', e.target.value)} fullWidth />
+          )}
+        </Box>
+      );
+
+      if (step === 2) return (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          {selectedType === 'Bail' && (
+            <>
+              {renderField('firNumber', 'FIR Number', formData, onChange)}
+              {renderField('caseNumber', 'Case Number (if any)', formData, onChange)}
+              {renderField('allegedOffences', 'Alleged Offences / IPC-BNS Sections', formData, onChange)}
+              {renderField('incidentDate', 'Incident Date', formData, onChange, undefined, { type: 'date', slotProps: { inputLabel: { shrink: true } } })}
+              {renderField('currentStage', 'Current Stage', formData, onChange, stageOptions)}
+              <TextField label="Detailed Facts / Bail Grounds" value={formData.caseFacts} onChange={(e) => onChange('caseFacts', e.target.value)} multiline rows={6} fullWidth placeholder="Describe allegations, applicant role, custody risk, cooperation, and why bail is justified." />
+              <TextField label="Prior Bail Status" value={formData.priorBailStatus} onChange={(e) => onChange('priorBailStatus', e.target.value)} fullWidth placeholder="e.g. Not filed, rejected, pending, interim protection granted" />
+              <TextField label="Co-accused Details" value={formData.coAccusedDetails} onChange={(e) => onChange('coAccusedDetails', e.target.value)} multiline rows={2} fullWidth />
+              <TextField label="Medical / Family Grounds" value={formData.medicalFamilyGrounds} onChange={(e) => onChange('medicalFamilyGrounds', e.target.value)} multiline rows={2} fullWidth />
+              <TextField label="Surety Availability" value={formData.suretyAvailability} onChange={(e) => onChange('suretyAvailability', e.target.value)} fullWidth placeholder="e.g. Surety available with ID/address proof" />
+            </>
+          )}
+          {selectedType === 'Property Dispute' && (
+            <>
+              {renderField('propertyAddress', 'Property Address', formData, onChange, undefined, { multiline: true, rows: 2 })}
+              {renderField('propertyType', 'Property Type', formData, onChange, ['Residential', 'Commercial', 'Agricultural Land', 'Plot', 'Flat / Apartment', 'Other'])}
+              {renderField('ownershipStatus', 'Ownership / Title Status', formData, onChange, undefined, { placeholder: 'e.g. Registered owner, inherited, joint owner, agreement holder' })}
+              {renderField('possessionStatus', 'Possession Status', formData, onChange, ['In my possession', 'With opposite party', 'Tenant occupied', 'Vacant', 'Disputed / unclear'])}
+              {renderField('propertyValue', 'Approximate Property Value (optional)', formData, onChange)}
+              {renderField('propertyDocuments', 'Property Documents Available', formData, onChange, undefined, { multiline: true, rows: 2, placeholder: 'Sale deed, mutation records, tax receipts, rent agreement, photos...' })}
+              <TextField label="Dispute Facts" value={formData.caseFacts} onChange={(e) => onChange('caseFacts', e.target.value)} multiline rows={6} fullWidth placeholder="Describe title, possession, encroachment, sale/rent issue, family claim, or other property dispute details." />
+            </>
+          )}
+          {selectedType === 'Family Dispute' && (
+            <>
+              {renderField('familyMatter', 'Family Matter Type', formData, onChange, ['Divorce / separation', 'Maintenance', 'Child custody', 'Domestic violence', 'Matrimonial dispute', 'Succession / inheritance', 'Other'])}
+              {renderField('marriageDate', 'Marriage Date (if relevant)', formData, onChange, undefined, { type: 'date', slotProps: { inputLabel: { shrink: true } } })}
+              {renderField('childrenDetails', 'Children Details', formData, onChange, undefined, { multiline: true, rows: 2 })}
+              {renderField('livingArrangement', 'Current Living Arrangement', formData, onChange)}
+              {renderField('maintenanceNeeded', 'Maintenance / Financial Support Needed', formData, onChange)}
+              <TextField label="Family Dispute Facts" value={formData.caseFacts} onChange={(e) => onChange('caseFacts', e.target.value)} multiline rows={6} fullWidth placeholder="Describe incidents, current separation/living position, financial dependency, children, safety concerns, and prior talks." />
+            </>
+          )}
+          {selectedType === 'Consumer Dispute' && (
+            <>
+              {renderField('productService', 'Product / Service', formData, onChange)}
+              {renderField('purchaseDate', 'Purchase / Service Date', formData, onChange, undefined, { type: 'date', slotProps: { inputLabel: { shrink: true } } })}
+              {renderField('sellerName', 'Seller / Company / Platform Name', formData, onChange)}
+              {renderField('amountPaid', 'Amount Paid', formData, onChange)}
+              {renderField('complaintMade', 'Complaint / Ticket Details', formData, onChange, undefined, { multiline: true, rows: 2, placeholder: 'Ticket number, email date, call reference, response received...' })}
+              <TextField label="Consumer Issue Facts" value={formData.caseFacts} onChange={(e) => onChange('caseFacts', e.target.value)} multiline rows={6} fullWidth placeholder="Describe defect, deficiency, delay, refund denial, warranty issue, or unfair trade practice." />
+            </>
+          )}
+          {selectedType === 'Employment Dispute' && (
+            <>
+              {renderField('employerName', 'Employer / Company Name', formData, onChange)}
+              {renderField('jobTitle', 'Job Title / Role', formData, onChange)}
+              {renderField('employmentPeriod', 'Employment Period', formData, onChange, undefined, { placeholder: 'e.g. Jan 2024 to Apr 2026' })}
+              {renderField('salaryDues', 'Salary / Dues Pending', formData, onChange)}
+              {renderField('terminationDate', 'Termination / Resignation Date (if any)', formData, onChange, undefined, { type: 'date', slotProps: { inputLabel: { shrink: true } } })}
+              <TextField label="Employment Dispute Facts" value={formData.caseFacts} onChange={(e) => onChange('caseFacts', e.target.value)} multiline rows={6} fullWidth placeholder="Describe unpaid salary, termination, harassment, bond, notice period, documents held, or workplace issue." />
+            </>
+          )}
+          {selectedType === 'Money Recovery' && (
+            <>
+              {renderField('amountClaimed', 'Amount to Recover', formData, onChange)}
+              {renderField('transactionDate', 'Transaction / Loan Date', formData, onChange, undefined, { type: 'date', slotProps: { inputLabel: { shrink: true } } })}
+              {renderField('paymentMode', 'Payment Mode', formData, onChange, ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Card', 'Other'])}
+              {renderField('agreementProof', 'Agreement / Proof Available', formData, onChange, undefined, { multiline: true, rows: 2 })}
+              {renderField('repaymentPromise', 'Repayment Promise / Due Date', formData, onChange)}
+              <TextField label="Money Recovery Facts" value={formData.caseFacts} onChange={(e) => onChange('caseFacts', e.target.value)} multiline rows={6} fullWidth placeholder="Describe loan/payment purpose, promises, reminders, bounced cheque, messages, and current refusal." />
+            </>
+          )}
+          {selectedType === 'Criminal Complaint' && (
+            <>
+              {renderField('offenceNature', 'Nature of Offence', formData, onChange, ['Assault / threat', 'Cheating / fraud', 'Theft / robbery', 'Harassment', 'Domestic violence', 'Property damage', 'Other'])}
+              {renderField('incidentDate', 'Incident Date', formData, onChange, undefined, { type: 'date', slotProps: { inputLabel: { shrink: true } } })}
+              {renderField('policeComplaintStatus', 'Police Complaint Status', formData, onChange, ['Not filed', 'Filed but FIR not registered', 'FIR registered', 'CSR / NC registered', 'Police refused', 'Other'])}
+              {renderField('accusedDetails', 'Accused Details', formData, onChange, undefined, { multiline: true, rows: 2 })}
+              {renderField('threatStatus', 'Threat / Safety Concern', formData, onChange, ['No immediate threat', 'Threats continuing', 'Physical danger', 'Online threats', 'Unknown'])}
+              <TextField label="Criminal Complaint Facts" value={formData.caseFacts} onChange={(e) => onChange('caseFacts', e.target.value)} multiline rows={6} fullWidth placeholder="Describe what happened, where, who was involved, injuries/loss, witnesses, and police response." />
+            </>
+          )}
+          {selectedType === 'Cyber Crime' && (
+            <>
+              {renderField('cyberPlatform', 'Platform / Channel', formData, onChange, ['UPI / banking', 'Social media', 'E-commerce', 'Matrimonial / dating app', 'Email', 'Messaging app', 'Website', 'Other'])}
+              {renderField('transactionId', 'Transaction ID / Reference (if any)', formData, onChange)}
+              {renderField('cyberLossAmount', 'Financial Loss Amount (if any)', formData, onChange)}
+              {renderField('accountDetails', 'Account / Phone / URL Details', formData, onChange, undefined, { multiline: true, rows: 2 })}
+              {renderField('digitalEvidence', 'Digital Evidence Available', formData, onChange, undefined, { multiline: true, rows: 2, placeholder: 'Screenshots, chats, URLs, bank SMS, email headers, profile links...' })}
+              <TextField label="Cyber Crime Facts" value={formData.caseFacts} onChange={(e) => onChange('caseFacts', e.target.value)} multiline rows={6} fullWidth placeholder="Describe scam/fraud/harassment timeline, platform, accounts used, money trail, and immediate action taken." />
+            </>
+          )}
+          {selectedType === 'Other' && (
+            <>
+              {renderField('issueSubject', 'Issue Subject', formData, onChange)}
+              {renderField('currentStage', 'Current Stage', formData, onChange, stageOptions)}
+              <TextField label="Issue Facts" value={formData.caseFacts} onChange={(e) => onChange('caseFacts', e.target.value)} multiline rows={6} fullWidth placeholder="Describe the legal problem, people involved, dates, documents, and what has happened so far." />
+            </>
+          )}
+        </Box>
+      );
+
+      return (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <TextField label="Relief Requested" value={formData.reliefRequested} onChange={(e) => onChange('reliefRequested', e.target.value)} multiline rows={3} fullWidth placeholder={isBail ? 'e.g. Grant regular/anticipatory bail with suitable conditions.' : 'What outcome do you want?'} />
+          <TextField label="Urgency" value={formData.urgency} onChange={(e) => onChange('urgency', e.target.value)} select fullWidth>
+            {urgencyOptions.map((u) => <MenuItem key={u} value={u}>{u}</MenuItem>)}
+          </TextField>
+          <TextField label="Supporting Documents" value={formData.supportingDocuments} onChange={(e) => onChange('supportingDocuments', e.target.value)} multiline rows={3} fullWidth placeholder="FIR, notices, contracts, chats, receipts, IDs, photos, medical papers..." />
+          <TextField label="Witnesses / Evidence" value={formData.witnessesEvidence} onChange={(e) => onChange('witnessesEvidence', e.target.value)} multiline rows={3} fullWidth />
+          <TextField label="Preferred Next Step" value={formData.preferredNextStep} onChange={(e) => onChange('preferredNextStep', e.target.value)} select fullWidth>
+            {nextSteps.map((n) => <MenuItem key={n} value={n}>{n}</MenuItem>)}
+          </TextField>
+          <Paper sx={{ p: 2, backgroundColor: 'info.light', color: 'info.contrastText', borderRadius: 2 }}>
+            <Typography variant="body2">
+              <strong>Summary:</strong> {formData.disputeType || '[Dispute type]'} for {formData.applicantName || '[Applicant]'} in {formData.city || '[City]'}, {formData.state || '[State]'}. Relief sought: {formData.reliefRequested || '[Relief]'}.
+            </Typography>
+          </Paper>
+        </Box>
+      );
+    },
+    summary: (f) => `${f.disputeType || 'Dispute'} intake for ${f.applicantName || '[Applicant]'} in ${f.city || '[City]'}, ${f.state || '[State]'}. ${f.disputeType === 'Bail' ? `Bail type: ${f.bailType || '[Bail type]'}, custody status: ${f.custodyStatus || '[Status]'}. ` : ''}Relief requested: ${f.reliefRequested || '[Relief]'}.`,
+  };
+}
+
 function getDocConfig(type: string | undefined): DocConfig {
   switch (type) {
     case 'affidavit': return affidavitConfig();
     case 'legal-notice': return legalNoticeConfig();
     case 'consumer-complaint': return consumerComplaintConfig();
     case 'fir-help': return firHelpConfig();
+    case 'dispute': return disputeConfig();
     default: return rentAgreementConfig();
   }
 }
@@ -420,6 +765,7 @@ export default function LegalWorkflow() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '' });
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
+  const [locationMessage, setLocationMessage] = useState('');
 
   const config = getDocConfig(type);
   const documentTitle = formatDocumentType(type);
@@ -478,6 +824,113 @@ export default function LegalWorkflow() {
     };
   }, [formData.pincode]);
 
+  useEffect(() => {
+    getMe()
+      .then((user) => {
+        const name = user.name?.trim() || '';
+        if (!name) return;
+
+        setFormData((prev) => ({
+          ...prev,
+          landlordName: prev.landlordName?.trim() ? prev.landlordName : name,
+          deponentName: prev.deponentName?.trim() ? prev.deponentName : name,
+          senderName: prev.senderName?.trim() ? prev.senderName : name,
+          complainantName: prev.complainantName?.trim() ? prev.complainantName : name,
+          victimName: prev.victimName?.trim() ? prev.victimName : name,
+          applicantName: prev.applicantName?.trim() ? prev.applicantName : name,
+        }));
+      })
+      .catch(() => {
+        // Ignore profile fetch failure and leave form empty.
+      });
+  }, []);
+
+  useEffect(() => {
+    const locationFieldMap: Record<string, { addressField?: string; extraFields: string[] }> = {
+      'rent-agreement': { addressField: 'landlordAddress', extraFields: ['pincode', 'city', 'state'] },
+      'affidavit': { addressField: 'address', extraFields: ['city', 'state'] },
+      'legal-notice': { addressField: 'senderAddress', extraFields: [] },
+      'consumer-complaint': { addressField: 'complainantAddress', extraFields: [] },
+      'fir-help': { addressField: 'victimAddress', extraFields: [] },
+      'dispute': { addressField: 'applicantAddress', extraFields: ['city', 'state'] },
+    };
+
+    const fieldConfig = locationFieldMap[type || ''];
+    if (!fieldConfig) return;
+
+    const fieldsToCheck = [fieldConfig.addressField, ...fieldConfig.extraFields].filter(Boolean) as string[];
+    const shouldFill = fieldsToCheck.some((field) => !(formData[field]?.trim()));
+    if (!shouldFill) return;
+    if (!navigator?.geolocation) {
+      setLocationMessage('Location access not supported by this browser.');
+      return;
+    }
+
+    let active = true;
+    setLocationMessage('Fetching current location...');
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        if (!active) return;
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+          );
+          if (!res.ok) throw new Error('Reverse geocode failed');
+          const data = await res.json();
+          const addr = data.address || {};
+          const lines = [];
+          const street = [addr.house_number, addr.road].filter(Boolean).join(' ').trim();
+          if (street) lines.push(street);
+          if (addr.suburb) lines.push(addr.suburb);
+          if (addr.neighbourhood) lines.push(addr.neighbourhood);
+          if (addr.city || addr.town || addr.village || addr.hamlet) lines.push(addr.city || addr.town || addr.village || addr.hamlet);
+          if (addr.state) lines.push(addr.state);
+          if (addr.postcode) lines.push(addr.postcode);
+          const generatedAddress = lines.filter(Boolean).join(', ');
+          const generatedCity = addr.city || addr.town || addr.village || addr.hamlet || '';
+          const generatedState = addr.state || '';
+          const generatedPincode = addr.postcode || '';
+
+          setFormData((prev) => {
+            const next: FormData = { ...prev };
+            if (fieldConfig.addressField && !prev[fieldConfig.addressField]?.trim() && generatedAddress) {
+              next[fieldConfig.addressField] = generatedAddress;
+            }
+            if (fieldConfig.extraFields.includes('city') && !prev.city?.trim() && generatedCity) {
+              next.city = generatedCity;
+            }
+            if (fieldConfig.extraFields.includes('state') && !prev.state?.trim() && generatedState) {
+              next.state = generatedState;
+            }
+            if (fieldConfig.extraFields.includes('pincode') && !prev.pincode?.trim() && generatedPincode) {
+              next.pincode = generatedPincode;
+            }
+            return next;
+          });
+
+          if (generatedAddress || generatedCity || generatedState || generatedPincode) {
+            setLocationMessage('Location details auto-filled from your current location.');
+          } else {
+            setLocationMessage('Could not generate location details from your current location.');
+          }
+        } catch {
+          setLocationMessage('Unable to resolve your current location to an address.');
+        }
+      },
+      () => {
+        if (!active) return;
+        setLocationMessage('Location permission denied or unavailable.');
+      },
+      { timeout: 10000 }
+    );
+
+    return () => {
+      active = false;
+    };
+  }, [type, formData.address, formData.applicantAddress, formData.complainantAddress, formData.landlordAddress, formData.pincode, formData.city, formData.state, formData.senderAddress, formData.victimAddress]);
+
   const handleBack = () => setActiveStep((prev) => prev - 1);
 
   const handleSaveDraft = async () => {
@@ -518,16 +971,42 @@ export default function LegalWorkflow() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      if (type === 'dispute' && field === 'disputeType') {
+        const next: FormData = { ...prev, disputeType: value };
+        DISPUTE_SPECIFIC_FIELDS.forEach((key) => {
+          next[key] = '';
+        });
+        return next;
+      }
+      return { ...prev, [field]: value };
+    });
   };
 
   const handleAIAutofill = () => {
-    setFormData(config.autofillData);
+    setFormData((prev) => {
+      const filteredAutofillEntries = Object.entries(config.autofillData).filter(
+        ([key]) => !/name|address/i.test(key)
+      );
+
+      const newValues = filteredAutofillEntries.reduce<FormData>((acc, [key, value]) => {
+        if (prev[key]?.trim()) return acc;
+        acc[key] = value;
+        return acc;
+      }, {});
+
+      return {
+        ...prev,
+        ...newValues,
+      };
+    });
     setSnackbar({ open: true, message: 'AI autofill applied — review and edit as needed' });
   };
 
   const validateStep = (): string | null => {
-    const required = config.requiredFields?.[activeStep] ?? [];
+    const required = type === 'dispute'
+      ? (DISPUTE_REQUIRED_FIELDS[formData.disputeType || 'Other']?.[activeStep] ?? config.requiredFields?.[activeStep] ?? [])
+      : (config.requiredFields?.[activeStep] ?? []);
     for (const field of required) {
       const val = (formData[field] ?? '').trim();
       if (!val) {
@@ -556,10 +1035,13 @@ export default function LegalWorkflow() {
       if (field === 'pincode' && !/^\d{6}$/.test(val)) {
         return 'PIN code must be exactly 6 digits';
       }
-      if (['monthlyRent', 'securityDeposit', 'tenurePeriod', 'amount', 'demandAmount', 'deadline', 'propertyArea', 'maintenanceCharges', 'lockInPeriod', 'noticePeriod', 'lateFee', 'stampDutyAmount'].includes(field) && (isNaN(Number(val)) || Number(val) <= 0)) {
+      if (['monthlyRent', 'securityDeposit', 'tenurePeriod', 'amount', 'demandAmount', 'deadline', 'propertyArea', 'maintenanceCharges', 'lockInPeriod', 'noticePeriod', 'lateFee', 'stampDutyAmount', 'amountPaid', 'amountClaimed', 'salaryDues', 'cyberLossAmount'].includes(field) && (isNaN(Number(val)) || Number(val) <= 0)) {
         const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
         return `"${label}" must be a positive number`;
       }
+    }
+    if (type === 'dispute' && formData.disputeType === 'Bail' && activeStep === 2 && !formData.firNumber?.trim() && !formData.caseNumber?.trim()) {
+      return 'FIR number or case number is required for bail';
     }
     return null;
   };
@@ -619,6 +1101,9 @@ export default function LegalWorkflow() {
         <Paper elevation={0} sx={{ p: 3, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
           {config.renderStep(activeStep, formData, handleInputChange, { cityOptions })}
         </Paper>
+        {locationMessage && (
+          <Alert severity="info" sx={{ mb: 3 }}>{locationMessage}</Alert>
+        )}
         {type === 'rent-agreement' && activeStep === 1 && pincodeMessage && (
           <Alert severity="info" sx={{ mb: 3 }}>{pincodeMessage}</Alert>
         )}
