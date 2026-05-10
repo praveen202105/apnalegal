@@ -21,7 +21,7 @@ import DocumentsList from './components/DocumentsList';
 import RequestDocument from './components/RequestDocument';
 import MyDocumentRequests from './components/MyDocumentRequests';
 import ReviewAndSign from './components/ReviewAndSign';
-import { isAuthenticated, clearTokens, logout, getPreferences } from '../lib/api';
+import { isAuthenticated, clearTokens, logout, getPreferences, getAccessToken, setTokens } from '../lib/api';
 
 
 function buildTheme(dark: boolean) {
