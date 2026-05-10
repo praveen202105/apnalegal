@@ -16,10 +16,11 @@ import {
   Switch,
   FormControlLabel
 } from '@mui/material';
-import { 
-  Briefcase, 
-  IndianRupee, 
-  User, 
+import {
+  Briefcase,
+  FileText,
+  IndianRupee,
+  User,
   LogOut,
   Menu
 } from 'lucide-react';
@@ -35,6 +36,7 @@ export default function LawyerLayout() {
 
   const menuItems = [
     { text: 'My Cases', icon: <Briefcase size={20} />, path: '/' },
+    { text: 'Document Cases', icon: <FileText size={20} />, path: '/document-cases' },
     { text: 'Earnings', icon: <IndianRupee size={20} />, path: '/earnings' },
     { text: 'Profile', icon: <User size={20} />, path: '/profile' },
   ];

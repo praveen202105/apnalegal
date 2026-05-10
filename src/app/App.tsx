@@ -18,7 +18,10 @@ import SubscriptionPricing from './components/SubscriptionPricing';
 import SettingsScreen from './components/SettingsScreen';
 import EditProfile from './components/EditProfile';
 import DocumentsList from './components/DocumentsList';
-import { isAuthenticated, clearTokens, logout, getPreferences, getAccessToken, setTokens } from '../lib/api';
+import RequestDocument from './components/RequestDocument';
+import MyDocumentRequests from './components/MyDocumentRequests';
+import ReviewAndSign from './components/ReviewAndSign';
+import { isAuthenticated, clearTokens, logout, getPreferences } from '../lib/api';
 
 
 function buildTheme(dark: boolean) {
@@ -196,6 +199,9 @@ export default function App() {
                 <Route path="/settings" element={<SettingsScreen />} />
                 <Route path="/edit-profile" element={<EditProfile />} />
                 <Route path="/documents" element={<DocumentsList />} />
+                <Route path="/document-requests" element={<MyDocumentRequests />} />
+                <Route path="/document-requests/new" element={<RequestDocument />} />
+                <Route path="/document-requests/:id" element={<ReviewAndSign />} />
 
               </>
             )}

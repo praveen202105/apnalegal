@@ -207,13 +207,13 @@ router.post('/refresh', async (req: Request, res: Response) => {
   }
 });
 
-// POST /auth/register — create admin or lawyer account with email+password
+// POST /auth/register — public self-signup. Always creates role='user'.
+// Admin/lawyer accounts are created via seed-auth.ts (bootstrap) or /admin/lawyers (admin-only).
 router.post('/register', async (req: Request, res: Response) => {
   const schema = z.object({
     name: z.string().min(2),
     email: z.string().email(),
     password: z.string().min(6),
-    role: z.enum(['admin', 'lawyer']),
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
@@ -221,7 +221,7 @@ router.post('/register', async (req: Request, res: Response) => {
     return;
   }
 
-  const { name, email, password, role } = parsed.data;
+  const { name, email, password } = parsed.data;
 
   const existing = await User.findOne({ email });
   if (existing) {
@@ -232,7 +232,7 @@ router.post('/register', async (req: Request, res: Response) => {
   const bcrypt = await import('bcryptjs');
   const passwordHash = await bcrypt.default.hash(password, 10);
 
-  const user = await User.create({ name, email, role, passwordHash });
+  const user = await User.create({ name, email, role: 'user', passwordHash });
 
   const accessToken = signAccessToken(user._id.toString());
   const refreshToken = signRefreshToken(user._id.toString());
@@ -263,7 +263,7 @@ router.post('/login-password', async (req: Request, res: Response) => {
 
   const { email, password } = parsed.data;
 
-  const user = await User.findOne({ email, role: { $in: ['admin', 'lawyer'] } });
+  const user = await User.findOne({ email });
   if (!user || !user.passwordHash) {
     res.status(401).json({ message: 'Invalid email or password' });
     return;

@@ -30,6 +30,19 @@ export const adminApi = {
   onboardLawyer: (data: any) => api.post('/admin/lawyers', data),
   verifyLawyer: (id: string) => api.patch(`/admin/lawyers/${id}/verify`),
   suspendLawyer: (id: string) => api.patch(`/admin/lawyers/${id}/suspend`),
+
+  // Document Requests
+  getDocumentRequests: (params?: { status?: string; city?: string; q?: string }) =>
+    api.get('/admin/document-requests', { params }),
+  getDocumentRequest: (id: string) => api.get(`/admin/document-requests/${id}`),
+  assignDocumentRequest: (id: string, data: { lawyerId: string; adminNotes?: string }) =>
+    api.post(`/admin/document-requests/${id}/assign`, data),
+  updateDocumentRequestStatus: (id: string, status: 'under_review' | 'cancelled', note?: string) =>
+    api.patch(`/admin/document-requests/${id}/status`, { status, note }),
+  documentRequestDeliverableUrl: (id: string) =>
+    `${API_URL}/admin/document-requests/${id}/deliverable?token=${localStorage.getItem('adminToken') ?? ''}`,
+  documentRequestSignedUrl: (id: string) =>
+    `${API_URL}/admin/document-requests/${id}/signed?token=${localStorage.getItem('adminToken') ?? ''}`,
 };
 
 export default api;

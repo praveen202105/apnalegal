@@ -291,6 +291,83 @@ export const getConsultationRequest = (id: string) => json<ConsultationRequest>(
 export const rateConsultation = (id: string, rating: number, note?: string) =>
   json(`/consultations/${id}/rate`, { method: 'POST', body: JSON.stringify({ rating, note }) });
 
+// ── Document Requests (User → Admin → Lawyer → Signed delivery) ───────────────
+export type DocumentRequestStatus =
+  | 'submitted'
+  | 'under_review'
+  | 'assigned'
+  | 'in_progress'
+  | 'delivered'
+  | 'signed'
+  | 'completed'
+  | 'cancelled';
+
+export interface DocumentRequestStatusEntry {
+  status: DocumentRequestStatus;
+  byRole: 'user' | 'admin' | 'lawyer' | 'system';
+  at: string;
+  note?: string;
+}
+
+export interface DocumentRequest {
+  _id: string;
+  type: string;
+  title: string;
+  description: string;
+  formData: Record<string, unknown>;
+  city: string;
+  state: string;
+  preferredLanguage: string;
+  status: DocumentRequestStatus;
+  statusHistory: DocumentRequestStatusEntry[];
+  adminNotes?: string;
+  contactRevealedAt?: string;
+  versionNumber: number;
+  signatureMethod?: 'canvas' | 'aadhaar_esign' | null;
+  deliverable?: {
+    fileName: string;
+    mimeType: string;
+    uploadedAt: string;
+    lawyerNotes: string;
+  };
+  signature?: { signedAt: string };
+  signedFile?: { mimeType: string };
+  lawyerId?: { _id: string; name: string; phone?: string; email?: string; city?: string; specialties?: string[] };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const createDocumentRequest = (data: {
+  type: string;
+  title?: string;
+  description: string;
+  formData?: Record<string, unknown>;
+  city: string;
+  state?: string;
+  preferredLanguage?: string;
+}) => json<DocumentRequest>('/document-requests', { method: 'POST', body: JSON.stringify(data) });
+
+export const listDocumentRequests = () =>
+  json<DocumentRequest[]>('/document-requests');
+
+export const getDocumentRequest = (id: string) =>
+  json<DocumentRequest>(`/document-requests/${id}`);
+
+export const signDocumentRequest = (id: string, pngBase64: string) =>
+  json<DocumentRequest>(`/document-requests/${id}/sign`, {
+    method: 'POST',
+    body: JSON.stringify({ pngBase64 }),
+  });
+
+export const cancelDocumentRequest = (id: string) =>
+  json<DocumentRequest>(`/document-requests/${id}/cancel`, { method: 'POST' });
+
+export const documentRequestDeliverableUrl = (id: string) =>
+  `${BASE_URL}/document-requests/${id}/deliverable?token=${getAccessToken()}`;
+
+export const documentRequestSignedUrl = (id: string) =>
+  `${BASE_URL}/document-requests/${id}/signed?token=${getAccessToken()}`;
+
 // ── Deprecated Lawyers/Bookings (Legacy) ──────────────────────────────────────
 export interface Lawyer { _id: string; name: string; specialty: string; city: string; }
 export interface Booking { _id: string; lawyerId: any; date: string; time: string; status: string; }

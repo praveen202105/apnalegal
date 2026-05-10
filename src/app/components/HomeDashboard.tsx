@@ -31,7 +31,8 @@ import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import LocalPoliceIcon from '@mui/icons-material/LocalPolice';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { getMe, getDocuments, getConsultationRequests, type ConsultationRequest } from '../../lib/api';
+import { getMe, getDocuments, getConsultationRequests, listDocumentRequests, type ConsultationRequest, type DocumentRequest } from '../../lib/api';
+import EditNoteIcon from '@mui/icons-material/EditNote';
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -70,6 +71,7 @@ export default function HomeDashboard() {
   const [userName, setUserName] = useState('');
   const [documents, setDocuments] = useState<{ _id: string; type: string; status: string; createdAt: string }[]>([]);
   const [consultations, setConsultations] = useState<ConsultationRequest[]>([]);
+  const [docRequests, setDocRequests] = useState<DocumentRequest[]>([]);
   const [loadingUser, setLoadingUser] = useState(true);
 
   useEffect(() => {
@@ -84,6 +86,10 @@ export default function HomeDashboard() {
 
     getConsultationRequests()
       .then((reqs) => setConsultations(reqs))
+      .catch(() => {});
+
+    listDocumentRequests()
+      .then((reqs) => setDocRequests(reqs.slice(0, 3)))
       .catch(() => {});
   }, []);
 
@@ -204,6 +210,21 @@ export default function HomeDashboard() {
         )}
 
         <Card
+          sx={{ background: 'linear-gradient(135deg, #6A1B9A 0%, #4A148C 100%)', color: 'white', mb: 2, cursor: 'pointer' }}
+          onClick={() => navigate('/document-requests/new')}
+        >
+          <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ width: 56, height: 56, borderRadius: '14px', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <EditNoteIcon sx={{ fontSize: 32 }} />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" sx={{ mb: 0.5 }}>Lawyer-Prepared Document</Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>Request, review, e-sign &amp; download</Typography>
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card
           sx={{ background: 'linear-gradient(135deg, #00897B 0%, #00695C 100%)', color: 'white', mb: 3, cursor: 'pointer' }}
           onClick={() => navigate('/ai-assistant')}
         >
@@ -268,6 +289,43 @@ export default function HomeDashboard() {
                 <DescriptionIcon sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.4, mb: 1 }} />
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>No documents yet</Typography>
                 <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>Create your first document →</Typography>
+              </CardContent>
+            </Card>
+          )}
+        </Box>
+
+        <Typography variant="h6" sx={{ mb: 2 }}>My Document Requests</Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 4 }}>
+          {docRequests.length > 0 ? (
+            <>
+              {docRequests.map((r) => (
+                <Card key={r._id} sx={{ cursor: 'pointer' }} onClick={() => navigate(`/document-requests/${r._id}`)}>
+                  <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <EditNoteIcon sx={{ fontSize: 32, color: '#6A1B9A' }} />
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{r.title}</Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>{r.city}</Typography>
+                      <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 500 }}>
+                        Status: {r.status.replace('_', ' ').toUpperCase()}
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+              <Typography
+                variant="caption"
+                sx={{ color: 'primary.main', fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}
+                onClick={() => navigate('/document-requests')}
+              >
+                View all →
+              </Typography>
+            </>
+          ) : (
+            <Card sx={{ cursor: 'pointer', border: '1px dashed', borderColor: 'divider' }} onClick={() => navigate('/document-requests/new')}>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <EditNoteIcon sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.4, mb: 1 }} />
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>No document requests yet</Typography>
+                <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>Have a lawyer prepare one →</Typography>
               </CardContent>
             </Card>
           )}
