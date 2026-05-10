@@ -179,7 +179,7 @@ router.post('/google', googleAuthLimiter, async (req: Request, res: Response) =>
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
-    res.json({ accessToken, user: { id: user._id, name: user.name, email: user.email } });
+    res.json({ accessToken, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
   } catch (err) {
     res.status(400).json({ message: 'Invalid Google token' });
   }

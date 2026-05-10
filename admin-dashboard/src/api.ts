@@ -17,6 +17,7 @@ api.interceptors.request.use((config) => {
 
 export const adminApi = {
   login: (phone: string, otp: string) => api.post('/auth/verify-otp', { phone, otp }),
+  googleLogin: (token: string) => api.post('/auth/google', { googleToken: token }),
   getAnalytics: () => api.get('/admin/analytics'),
   getRequests: (status?: string) => api.get(`/admin/requests${status ? `?status=${status}` : ''}`),
   assignLawyer: (requestId: string, data: { lawyerId: string; lawyerFee: number; commissionRate?: number; adminNotes?: string }) => 

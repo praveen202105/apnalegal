@@ -17,6 +17,7 @@ api.interceptors.request.use((config) => {
 
 export const lawyerApi = {
   login: (phone: string, otp: string) => api.post('/auth/verify-otp', { phone, otp }),
+  googleLogin: (token: string) => api.post('/auth/google', { googleToken: token }),
   getProfile: () => api.get('/lawyer/profile'),
   updateAvailability: (isAvailable: boolean) => api.patch('/lawyer/availability', { isAvailable }),
   getCases: () => api.get('/lawyer/cases'),
