@@ -18,7 +18,7 @@ import SubscriptionPricing from './components/SubscriptionPricing';
 import SettingsScreen from './components/SettingsScreen';
 import EditProfile from './components/EditProfile';
 import DocumentsList from './components/DocumentsList';
-import { isAuthenticated, clearTokens, logout, getPreferences } from '../lib/api';
+import { isAuthenticated, clearTokens, logout, getPreferences, getAccessToken, setTokens } from '../lib/api';
 
 
 function buildTheme(dark: boolean) {
@@ -105,21 +105,25 @@ function buildTheme(dark: boolean) {
 }
 
 export default function App() {
+  const localDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   const [showSplash, setShowSplash] = useState(true);
-  const [hasOnboarded, setHasOnboarded] = useState(false);
-  const [authenticated, setAuthenticated] = useState(false);
+  const [hasOnboarded, setHasOnboarded] = useState(() => localDev || localStorage.getItem('hasOnboarded') === 'true');
+  const [authenticated, setAuthenticated] = useState(() => localDev || isAuthenticated());
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
 
   const theme = useMemo(() => buildTheme(darkMode), [darkMode]);
 
   useEffect(() => {
     const onboarded = localStorage.getItem('hasOnboarded') === 'true';
-    setHasOnboarded(onboarded);
-    setAuthenticated(isAuthenticated());
+    if (localDev && !getAccessToken()) {
+      setTokens('local-dev-token');
+    }
+    setHasOnboarded(onboarded || localDev);
+    setAuthenticated(isAuthenticated() || localDev);
 
     const timer = setTimeout(() => setShowSplash(false), 2000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [localDev]);
 
   // Load dark mode preference from backend once authenticated
   useEffect(() => {

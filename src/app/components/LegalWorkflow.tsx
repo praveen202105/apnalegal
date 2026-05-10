@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -32,7 +32,18 @@ function formatDocumentType(type: string | undefined): string {
   return type.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
-const STATES = ['Andhra Pradesh', 'Delhi', 'Gujarat', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Punjab', 'Rajasthan', 'Tamil Nadu', 'Telangana', 'Uttar Pradesh', 'West Bengal'];
+const STATES = ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Lakshadweep', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Puducherry'];
+const DOC_TYPES = ['Aadhaar', 'PAN', 'Driving License'];
+const STAMP_DUTY_OPTIONS: Record<string, string[]> = {
+  'Maharashtra': ['300', '500', '1000'],
+  'Karnataka': ['250', '500', '900'],
+  'Delhi': ['200', '400', '800'],
+  'Tamil Nadu': ['250', '500', '1000'],
+  'West Bengal': ['200', '450', '900'],
+  'Kerala': ['250', '550', '950'],
+  'Uttar Pradesh': ['200', '450', '900'],
+  'Default': ['200', '500', '1000'],
+};
 
 type FormData = Record<string, string>;
 
@@ -41,33 +52,143 @@ interface DocConfig {
   defaultFormData: FormData;
   autofillData: FormData;
   requiredFields?: Record<number, string[]>;
-  renderStep: (step: number, formData: FormData, onChange: (field: string, value: string) => void) => React.ReactNode;
+  renderStep: (
+    step: number,
+    formData: FormData,
+    onChange: (field: string, value: string) => void,
+    extra?: { cityOptions?: string[] }
+  ) => React.ReactNode;
   summary: (formData: FormData) => string;
 }
 
 function rentAgreementConfig(): DocConfig {
   return {
-    steps: ['Basic Details', 'Property Info', 'Terms & Conditions'],
-    defaultFormData: { landlordName: '', tenantName: '', propertyAddress: '', monthlyRent: '', securityDeposit: '', tenurePeriod: '', startDate: '', city: '', state: '' },
-    autofillData: { landlordName: 'Rajesh Kumar', tenantName: 'Amit Sharma', propertyAddress: '123, MG Road, Apartment 4B', monthlyRent: '25000', securityDeposit: '50000', tenurePeriod: '11', startDate: '2026-06-01', city: 'Mumbai', state: 'Maharashtra' },
-    requiredFields: {
-      0: ['landlordName', 'tenantName', 'propertyAddress'],
-      1: ['monthlyRent', 'securityDeposit', 'city', 'state'],
-      2: ['tenurePeriod', 'startDate'],
+    steps: ['Parties Details', 'Property & Rent Info', 'Terms & Witnesses'],
+    defaultFormData: {
+      landlordName: '',
+      landlordAddress: '',
+      landlordDocType: '',
+      landlordDocNumber: '',
+      tenantName: '',
+      tenantAddress: '',
+      tenantDocType: '',
+      tenantDocNumber: '',
+      tenantOccupation: '',
+      propertyAddress: '',
+      propertyType: '',
+      propertyArea: '',
+      furnished: '',
+      monthlyRent: '',
+      securityDeposit: '',
+      maintenanceCharges: '',
+      utilitiesIncluded: '',
+      pincode: '',
+      city: '',
+      state: '',
+      tenurePeriod: '',
+      startDate: '',
+      lockInPeriod: '',
+      noticePeriod: '',
+      lateFee: '',
+      petsAllowed: '',
+      sublettingAllowed: '',
+      stampDutyOption: '',
+      stampDutyAmount: '',
+      witness1Name: '',
+      witness1Address: '',
+      witness2Name: '',
+      witness2Address: '',
+      place: '',
+      agreementDate: ''
     },
-    renderStep: (step, formData, onChange) => {
+    autofillData: {
+      landlordName: 'Rajesh Kumar',
+      landlordAddress: '123, MG Road, Apartment 4B, Mumbai',
+      landlordDocType: 'PAN',
+      landlordDocNumber: 'ABCDE1234F',
+      tenantName: 'Amit Sharma',
+      tenantAddress: '456, Linking Road, Bandra, Mumbai',
+      tenantDocType: 'Aadhaar',
+      tenantDocNumber: '987654321098',
+      tenantOccupation: 'Software Engineer',
+      propertyAddress: '123, MG Road, Apartment 4B',
+      propertyType: 'Residential',
+      propertyArea: '1200',
+      furnished: 'Semi-furnished',
+      monthlyRent: '25000',
+      securityDeposit: '50000',
+      maintenanceCharges: '2000',
+      utilitiesIncluded: 'Electricity, Water',
+      pincode: '400001',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      tenurePeriod: '11',
+      startDate: '2026-06-01',
+      lockInPeriod: '12',
+      noticePeriod: '1',
+      lateFee: '500',
+      petsAllowed: 'No',
+      sublettingAllowed: 'No',
+      stampDutyOption: '500',
+      stampDutyAmount: '500',
+      witness1Name: 'Suresh Patel',
+      witness1Address: '789, Park Street, Mumbai',
+      witness2Name: 'Priya Mehta',
+      witness2Address: '101, Hill Road, Mumbai',
+      place: 'Mumbai',
+      agreementDate: '2026-05-10'
+    },
+    requiredFields: {
+      0: ['landlordName', 'landlordAddress', 'landlordDocType', 'landlordDocNumber', 'tenantName', 'tenantAddress', 'tenantDocType', 'tenantDocNumber', 'tenantOccupation', 'propertyAddress'],
+      1: ['propertyType', 'propertyArea', 'furnished', 'monthlyRent', 'securityDeposit', 'city', 'state', 'pincode'],
+      2: ['tenurePeriod', 'startDate', 'lockInPeriod', 'noticePeriod', 'lateFee', 'petsAllowed', 'sublettingAllowed', 'stampDutyAmount', 'witness1Name', 'witness1Address', 'witness2Name', 'witness2Address', 'place', 'agreementDate'],
+    },
+    renderStep: (step, formData, onChange, extra) => {
+      const cityOptions: string[] = extra?.cityOptions ?? [];
       if (step === 0) return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <Typography variant="h6" sx={{ mb: 1 }}>Landlord Details</Typography>
           <TextField label="Landlord Name" value={formData.landlordName} onChange={(e) => onChange('landlordName', e.target.value)} fullWidth />
+          <TextField label="Landlord Address" value={formData.landlordAddress} onChange={(e) => onChange('landlordAddress', e.target.value)} multiline rows={2} fullWidth />
+          <TextField label="Document Type" value={formData.landlordDocType} onChange={(e) => onChange('landlordDocType', e.target.value)} select fullWidth>
+            {DOC_TYPES.map((type) => <MenuItem key={type} value={type}>{type}</MenuItem>)}
+          </TextField>
+          <TextField label="Document Number" value={formData.landlordDocNumber} onChange={(e) => onChange('landlordDocNumber', e.target.value)} fullWidth />
+
+          <Typography variant="h6" sx={{ mb: 1, mt: 2 }}>Tenant Details</Typography>
           <TextField label="Tenant Name" value={formData.tenantName} onChange={(e) => onChange('tenantName', e.target.value)} fullWidth />
+          <TextField label="Tenant Address" value={formData.tenantAddress} onChange={(e) => onChange('tenantAddress', e.target.value)} multiline rows={2} fullWidth />
+          <TextField label="Document Type" value={formData.tenantDocType} onChange={(e) => onChange('tenantDocType', e.target.value)} select fullWidth>
+            {DOC_TYPES.map((type) => <MenuItem key={type} value={type}>{type}</MenuItem>)}
+          </TextField>
+          <TextField label="Document Number" value={formData.tenantDocNumber} onChange={(e) => onChange('tenantDocNumber', e.target.value)} fullWidth />
+          <TextField label="Tenant Occupation" value={formData.tenantOccupation} onChange={(e) => onChange('tenantOccupation', e.target.value)} fullWidth />
+
+          <Typography variant="h6" sx={{ mb: 1, mt: 2 }}>Property Details</Typography>
           <TextField label="Property Address" value={formData.propertyAddress} onChange={(e) => onChange('propertyAddress', e.target.value)} multiline rows={3} fullWidth />
         </Box>
       );
       if (step === 1) return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <TextField label="Property Type" value={formData.propertyType} onChange={(e) => onChange('propertyType', e.target.value)} select fullWidth>
+            {['Residential', 'Commercial', 'Industrial'].map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+          </TextField>
+          <TextField label="Property Area (sq ft)" value={formData.propertyArea} onChange={(e) => onChange('propertyArea', e.target.value)} type="number" fullWidth />
+          <TextField label="Furnished Status" value={formData.furnished} onChange={(e) => onChange('furnished', e.target.value)} select fullWidth>
+            {['Furnished', 'Semi-furnished', 'Unfurnished'].map((f) => <MenuItem key={f} value={f}>{f}</MenuItem>)}
+          </TextField>
           <TextField label="Monthly Rent (₹)" value={formData.monthlyRent} onChange={(e) => onChange('monthlyRent', e.target.value)} type="number" fullWidth />
           <TextField label="Security Deposit (₹)" value={formData.securityDeposit} onChange={(e) => onChange('securityDeposit', e.target.value)} type="number" fullWidth />
-          <TextField label="City" value={formData.city} onChange={(e) => onChange('city', e.target.value)} fullWidth />
+          <TextField label="Maintenance Charges (₹)" value={formData.maintenanceCharges} onChange={(e) => onChange('maintenanceCharges', e.target.value)} type="number" fullWidth />
+          <TextField label="Utilities Included" value={formData.utilitiesIncluded} onChange={(e) => onChange('utilitiesIncluded', e.target.value)} fullWidth placeholder="e.g. Electricity, Water, Gas" />
+          <TextField label="PIN Code" value={formData.pincode} onChange={(e) => onChange('pincode', e.target.value)} type="number" fullWidth />
+          {cityOptions.length > 0 ? (
+            <TextField label="City" value={formData.city} onChange={(e) => onChange('city', e.target.value)} select fullWidth>
+              {cityOptions.map((city) => <MenuItem key={city} value={city}>{city}</MenuItem>)}
+            </TextField>
+          ) : (
+            <TextField label="City" value={formData.city} onChange={(e) => onChange('city', e.target.value)} fullWidth />
+          )}
           <TextField label="State" value={formData.state} onChange={(e) => onChange('state', e.target.value)} select fullWidth>
             {STATES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
           </TextField>
@@ -77,15 +198,38 @@ function rentAgreementConfig(): DocConfig {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
           <TextField label="Tenure Period (Months)" value={formData.tenurePeriod} onChange={(e) => onChange('tenurePeriod', e.target.value)} type="number" fullWidth />
           <TextField label="Start Date" value={formData.startDate} onChange={(e) => onChange('startDate', e.target.value)} type="date" fullWidth slotProps={{ inputLabel: { shrink: true } }} />
-          <Paper sx={{ p: 2, backgroundColor: 'info.light', color: 'info.contrastText', borderRadius: 2 }}>
+          <TextField label="Lock-in Period (Months)" value={formData.lockInPeriod} onChange={(e) => onChange('lockInPeriod', e.target.value)} type="number" fullWidth />
+          <TextField label="Notice Period (Months)" value={formData.noticePeriod} onChange={(e) => onChange('noticePeriod', e.target.value)} type="number" fullWidth />
+          <TextField label="Late Fee (₹ per day)" value={formData.lateFee} onChange={(e) => onChange('lateFee', e.target.value)} type="number" fullWidth />
+          <TextField label="Pets Allowed" value={formData.petsAllowed} onChange={(e) => onChange('petsAllowed', e.target.value)} select fullWidth>
+            {['Yes', 'No'].map((p) => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+          </TextField>
+          <TextField label="Subletting Allowed" value={formData.sublettingAllowed} onChange={(e) => onChange('sublettingAllowed', e.target.value)} select fullWidth>
+            {['Yes', 'No'].map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+          </TextField>
+          <TextField label="Stamp Duty Suggestion" value={formData.stampDutyOption} onChange={(e) => onChange('stampDutyOption', e.target.value)} select fullWidth>
+            {(STAMP_DUTY_OPTIONS[formData.state] || STAMP_DUTY_OPTIONS.Default).map((option) => <MenuItem key={option} value={option}>{`₹${option}`}</MenuItem>)}
+          </TextField>
+          <TextField label="Stamp Duty Amount (₹)" value={formData.stampDutyAmount} onChange={(e) => onChange('stampDutyAmount', e.target.value)} type="number" fullWidth />
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            Choose a stamp duty amount based on state guidelines. If your state is not listed, adjust manually.
+          </Typography>
+          <Typography variant="h6" sx={{ mb: 1, mt: 2 }}>Witnesses</Typography>
+          <TextField label="Witness 1 Name" value={formData.witness1Name} onChange={(e) => onChange('witness1Name', e.target.value)} fullWidth />
+          <TextField label="Witness 1 Address" value={formData.witness1Address} onChange={(e) => onChange('witness1Address', e.target.value)} multiline rows={2} fullWidth />
+          <TextField label="Witness 2 Name" value={formData.witness2Name} onChange={(e) => onChange('witness2Name', e.target.value)} fullWidth />
+          <TextField label="Witness 2 Address" value={formData.witness2Address} onChange={(e) => onChange('witness2Address', e.target.value)} multiline rows={2} fullWidth />
+          <TextField label="Place" value={formData.place} onChange={(e) => onChange('place', e.target.value)} fullWidth />
+          <TextField label="Agreement Date" value={formData.agreementDate} onChange={(e) => onChange('agreementDate', e.target.value)} type="date" fullWidth slotProps={{ inputLabel: { shrink: true } }} />
+          <Paper sx={{ p: 2, backgroundColor: 'info.light', color: 'info.contrastText', borderRadius: 2, mt: 2 }}>
             <Typography variant="body2">
-              <strong>Summary:</strong> Agreement between {formData.landlordName || '[Landlord]'} and {formData.tenantName || '[Tenant]'} for ₹{formData.monthlyRent || '0'}/month for {formData.tenurePeriod || '0'} months.
+              <strong>Summary:</strong> Rental agreement between {formData.landlordName || '[Landlord]'} and {formData.tenantName || '[Tenant]'} for {formData.propertyType || '[Type]'} property at {formData.propertyAddress || '[Address]'}, ₹{formData.monthlyRent || '0'}/month for {formData.tenurePeriod || '0'} months starting {formData.startDate || '[Date]'}. Stamp duty: ₹{formData.stampDutyAmount || '0'}.
             </Typography>
           </Paper>
         </Box>
       );
     },
-    summary: (f) => `Rent agreement between ${f.landlordName || '[Landlord]'} and ${f.tenantName || '[Tenant]'} for ₹${f.monthlyRent || '0'}/month, ${f.tenurePeriod || '0'} months at ${f.propertyAddress || '[Address]'}.`,
+    summary: (f) => `Rental agreement between ${f.landlordName || '[Landlord]'} and ${f.tenantName || '[Tenant]'} for ${f.propertyType || '[Type]'} property (${f.propertyArea || '0'} sq ft, ${f.furnished || '[Furnished]'}) at ${f.propertyAddress || '[Address]'}. Rent: ₹${f.monthlyRent || '0'}/month, Deposit: ₹${f.securityDeposit || '0'}, Tenure: ${f.tenurePeriod || '0'} months from ${f.startDate || '[Date]'}.`,
   };
 }
 
@@ -98,7 +242,7 @@ function affidavitConfig(): DocConfig {
       0: ['deponentName', 'fatherName', 'age', 'address'],
       1: ['purpose', 'statement', 'city', 'state'],
     },
-    renderStep: (step, formData, onChange) => {
+    renderStep: (step, formData, onChange, extra) => {
       if (step === 0) return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
           <TextField label="Deponent's Full Name" value={formData.deponentName} onChange={(e) => onChange('deponentName', e.target.value)} fullWidth />
@@ -146,7 +290,7 @@ function legalNoticeConfig(): DocConfig {
       1: ['recipientName', 'recipientAddress'],
       2: ['subject', 'description', 'demandAmount', 'deadline'],
     },
-    renderStep: (step, formData, onChange) => {
+    renderStep: (step, formData, onChange, extra) => {
       if (step === 0) return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
           <TextField label="Your Full Name" value={formData.senderName} onChange={(e) => onChange('senderName', e.target.value)} fullWidth />
@@ -184,7 +328,7 @@ function consumerComplaintConfig(): DocConfig {
       1: ['companyName', 'companyAddress', 'productService'],
       2: ['purchaseDate', 'amount', 'defectDescription', 'reliefSought'],
     },
-    renderStep: (step, formData, onChange) => {
+    renderStep: (step, formData, onChange, extra) => {
       if (step === 0) return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
           <TextField label="Your Full Name" value={formData.complainantName} onChange={(e) => onChange('complainantName', e.target.value)} fullWidth />
@@ -223,7 +367,7 @@ function firHelpConfig(): DocConfig {
       1: ['victimName', 'victimAddress', 'phone'],
       2: ['description'],
     },
-    renderStep: (step, formData, onChange) => {
+    renderStep: (step, formData, onChange, extra) => {
       if (step === 0) return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
           <TextField label="Type of Incident" value={formData.incidentType} onChange={(e) => onChange('incidentType', e.target.value)} select fullWidth>
@@ -281,6 +425,58 @@ export default function LegalWorkflow() {
   const documentTitle = formatDocumentType(type);
 
   const [formData, setFormData] = useState<FormData>(config.defaultFormData);
+  const [pincodeMessage, setPincodeMessage] = useState('');
+  const [cityOptions, setCityOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    const pin = (formData.pincode ?? '').trim();
+    if (!pin) {
+      setPincodeMessage('');
+      setCityOptions([]);
+      return;
+    }
+    if (!/^\d{6}$/.test(pin)) {
+      setPincodeMessage('PIN code must be exactly 6 digits');
+      setCityOptions([]);
+      return;
+    }
+
+    let isActive = true;
+    setPincodeMessage('Looking up city/state from PIN code...');
+    setCityOptions([]);
+
+    fetch(`https://api.postalpincode.in/pincode/${pin}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isActive) return;
+        const result = data?.[0];
+        if (result?.Status !== 'Success' || !result?.PostOffice?.length) {
+          setPincodeMessage('PIN lookup did not return matching city/state. Enter manually if needed.');
+          setCityOptions([]);
+          return;
+        }
+        const office = result.PostOffice[0] as any;
+        const cities: string[] = Array.from(new Set(result.PostOffice
+          .map((po: any) => (po.District || po.Name) as string)
+          .filter((value: string | undefined): value is string => Boolean(value))));
+        setFormData((prev) => ({
+          ...prev,
+          city: cities.length === 1 ? cities[0] : prev.city,
+          state: (office.State as string) || prev.state,
+        }));
+        setCityOptions(cities);
+        setPincodeMessage(`Matched PIN to ${office.District || office.Name}, ${office.State}`);
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setPincodeMessage('Unable to fetch city/state from PIN code at this time.');
+        setCityOptions([]);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [formData.pincode]);
 
   const handleBack = () => setActiveStep((prev) => prev - 1);
 
@@ -303,6 +499,19 @@ export default function LegalWorkflow() {
       navigate(`/document/${result.document._id}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Generation failed. Please try again.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handlePreview = async () => {
+    setGenerating(true);
+    setError('');
+    try {
+      const doc = await createDocument(type || 'unknown', formData);
+      navigate(`/document/${doc._id}`);
+    } catch {
+      setError('Failed to create preview. Please try again.');
     } finally {
       setGenerating(false);
     }
@@ -331,7 +540,23 @@ export default function LegalWorkflow() {
       if (['email', 'senderEmail'].includes(field) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
         return 'Please enter a valid email address';
       }
-      if (['monthlyRent', 'securityDeposit', 'tenurePeriod', 'age', 'amount', 'demandAmount', 'deadline'].includes(field) && (isNaN(Number(val)) || Number(val) <= 0)) {
+      if (['landlordDocNumber', 'tenantDocNumber'].includes(field)) {
+        const docTypeKey = field.replace('DocNumber', 'DocType');
+        const docType = formData[docTypeKey] || '';
+        if (docType === 'Aadhaar' && !/^\d{12}$/.test(val)) {
+          return 'Aadhaar number must be exactly 12 digits';
+        }
+        if (docType === 'PAN' && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(val)) {
+          return 'PAN must be in format ABCDE1234F';
+        }
+        if (docType === 'Driving License' && val.length < 6) {
+          return 'Driving License number must be at least 6 characters';
+        }
+      }
+      if (field === 'pincode' && !/^\d{6}$/.test(val)) {
+        return 'PIN code must be exactly 6 digits';
+      }
+      if (['monthlyRent', 'securityDeposit', 'tenurePeriod', 'amount', 'demandAmount', 'deadline', 'propertyArea', 'maintenanceCharges', 'lockInPeriod', 'noticePeriod', 'lateFee', 'stampDutyAmount'].includes(field) && (isNaN(Number(val)) || Number(val) <= 0)) {
         const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
         return `"${label}" must be a positive number`;
       }
@@ -392,15 +617,23 @@ export default function LegalWorkflow() {
         </Button>
 
         <Paper elevation={0} sx={{ p: 3, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
-          {config.renderStep(activeStep, formData, handleInputChange)}
+          {config.renderStep(activeStep, formData, handleInputChange, { cityOptions })}
         </Paper>
+        {type === 'rent-agreement' && activeStep === 1 && pincodeMessage && (
+          <Alert severity="info" sx={{ mb: 3 }}>{pincodeMessage}</Alert>
+        )}
 
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, flexDirection: activeStep === config.steps.length - 1 ? 'column' : 'row' }}>
           <Button variant="outlined" onClick={handleBack} disabled={activeStep === 0} fullWidth sx={{ py: 1.5 }}>Back</Button>
           <Button variant="contained" onClick={handleNext} fullWidth sx={{ py: 1.5 }} disabled={generating}>
             {activeStep === config.steps.length - 1 ? 'Generate Document' : 'Next'}
           </Button>
         </Box>
+        {activeStep === config.steps.length - 1 && (
+          <Button variant="outlined" onClick={handlePreview} fullWidth sx={{ mt: 2, py: 1.5 }} disabled={generating}>
+            Preview Document
+          </Button>
+        )}
       </Box>
 
       <Dialog open={showConfirmDialog} onClose={() => setShowConfirmDialog(false)}>

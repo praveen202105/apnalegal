@@ -1,4 +1,6 @@
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+const IS_LOCAL_DEV = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const DEV_TOKEN = 'LOCAL_DEV_TOKEN';
 
 export const CATEGORIES = ['Rent Agreement', 'Property Dispute', 'Consumer Complaint', 'Family Law', 'Criminal Defence', 'Labour Law', 'Corporate', 'Cyber Crime', 'Other'];
 export const STATES = ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Chandigarh', 'Laksadweep', 'Puducherry'];
@@ -19,6 +21,90 @@ export function isAuthenticated() {
   return !!getAccessToken();
 }
 
+function createMockResponse<T>(data: T, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function getMockResponse(path: string, options: RequestInit = {}): Response | null {
+  const method = (options.method || 'GET').toUpperCase();
+  const jsonBody = options.body ? JSON.parse(String(options.body)) : {};
+
+  if (path === '/auth/logout' && method === 'POST') {
+    return createMockResponse({ message: 'Logged out' });
+  }
+
+  if (path === '/auth/refresh' && method === 'POST') {
+    return createMockResponse({ accessToken: DEV_TOKEN });
+  }
+
+  if (path === '/user/me' && method === 'GET') {
+    return createMockResponse({ _id: 'dev-user', phone: '+911234567890', name: 'Dev User', email: 'dev@example.com', subscription: { plan: 'Free' } });
+  }
+
+  if (path === '/user/preferences' && method === 'GET') {
+    return createMockResponse({ darkMode: false, language: 'english', notifications: true, emailNotifications: true });
+  }
+
+  if (path === '/user/preferences' && method === 'PUT') {
+    return createMockResponse({});
+  }
+
+  if (path === '/documents' && method === 'GET') {
+    return createMockResponse([
+      { _id: 'doc-1', type: 'rent-agreement', status: 'draft', createdAt: new Date(Date.now() - 86400000).toISOString(), formData: { partyA: 'Dev User', partyB: 'Landlord' } },
+      { _id: 'doc-2', type: 'affidavit', status: 'completed', createdAt: new Date(Date.now() - 172800000).toISOString(), formData: { title: 'Affidavit' } },
+    ]);
+  }
+
+  if (path === '/documents/drafts' && method === 'GET') {
+    return createMockResponse([
+      { _id: 'draft-1', type: 'rent-agreement', status: 'draft', createdAt: new Date(Date.now() - 3600000).toISOString() },
+    ]);
+  }
+
+  if (path === '/consultations' && method === 'GET') {
+    return createMockResponse([
+      { _id: 'consult-1', legalCategory: 'Consumer Complaint', description: 'Need help with refund dispute', city: 'Mumbai', preferredLanguage: 'English', status: 'submitted', createdAt: new Date(Date.now() - 3600000).toISOString() },
+    ]);
+  }
+
+  if (path === '/consultations' && method === 'POST') {
+    return createMockResponse({ _id: 'consult-new', ...jsonBody, status: 'submitted', createdAt: new Date().toISOString() }, 201);
+  }
+
+  if (path === '/subscription/plans' && method === 'GET') {
+    return createMockResponse([
+      { id: 'free', name: 'Free', price: 0, period: 'month', description: 'Basic access', features: ['Mock document generation', 'AI assistant access'] },
+      { id: 'pro', name: 'Pro', price: 499, period: 'month', description: 'Advanced access', features: ['Priority support', 'Unlimited consultations', 'Premium templates'], popular: true },
+    ]);
+  }
+
+  if (path === '/subscription/current' && method === 'GET') {
+    return createMockResponse({ id: 'free', name: 'Free', price: 0, period: 'month', description: 'Local development plan', features: ['Mock profile access'], since: '2026-01-01' });
+  }
+
+  if (path === '/subscription/upgrade' && method === 'POST') {
+    return createMockResponse({ message: 'Plan upgraded', planId: jsonBody.planId });
+  }
+
+  if (path === '/notifications' && method === 'GET') {
+    return createMockResponse({ notifications: [], unreadCount: 0 });
+  }
+
+  if (path === '/ai/query' && method === 'POST') {
+    return createMockResponse({ response: 'This is a local development response from the AI assistant.' });
+  }
+
+  if (path === '/user/me' && method === 'PUT') {
+    return createMockResponse({ _id: 'dev-user', name: jsonBody.name || 'Dev User', email: jsonBody.email || 'dev@example.com' });
+  }
+
+  return null;
+}
+
 async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const token = getAccessToken();
   const headers: Record<string, string> = {
@@ -26,6 +112,22 @@ async function apiFetch(path: string, options: RequestInit = {}): Promise<Respon
     ...(options.headers as Record<string, string>),
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  if (IS_LOCAL_DEV) {
+    try {
+      const res = await fetch(`${BASE_URL}${path}`, { ...options, headers, credentials: 'include' });
+      if (res.ok) {
+        return res;
+      }
+    } catch {
+      // Ignore network failures and fall back to mocks.
+    }
+
+    const mock = getMockResponse(path, options);
+    if (mock) {
+      return mock;
+    }
+  }
 
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers, credentials: 'include' });
 
