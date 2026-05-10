@@ -16,6 +16,10 @@ import aiRouter from './routes/ai';
 import adminRouter from './routes/admin';
 import lawyerRouter from './routes/lawyer';
 import consultationsRouter from './routes/consultations';
+import documentRequestsRouter, {
+  adminDocumentRequestsRouter,
+  lawyerDocumentRequestsRouter,
+} from './routes/documentRequests';
 
 const app = express();
 
@@ -43,9 +47,12 @@ app.use('/payments', paymentsRouter);
 app.use('/subscription', subscriptionsRouter);
 app.use('/notifications', notificationsRouter);
 app.use('/ai', aiRouter);
+app.use('/admin/document-requests', adminDocumentRequestsRouter);
 app.use('/admin', adminRouter);
+app.use('/lawyer/document-requests', lawyerDocumentRequestsRouter);
 app.use('/lawyer', lawyerRouter);
 app.use('/consultations', consultationsRouter);
+app.use('/document-requests', documentRequestsRouter);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date() }));
 

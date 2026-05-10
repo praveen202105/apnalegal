@@ -1,36 +1,14 @@
 import { Router, Response } from 'express';
 import fs from 'fs';
-import path from 'path';
 import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import DocumentModel from '../models/Document';
 import Notification from '../models/Notification';
 import { generatePdf } from '../utils/pdf';
+import { DOCUMENT_SCHEMAS, DOCTYPE_LABELS } from '../utils/documentSchemas';
 
 const router = Router();
 router.use(authenticate);
-
-const DOCTYPE_LABELS: Record<string, string> = {
-  'rent-agreement': 'Rent Agreement',
-  'affidavit': 'Affidavit',
-  'legal-notice': 'Legal Notice',
-  'consumer-complaint': 'Consumer Complaint',
-  'fir-help': 'FIR Help',
-};
-
-const DOCUMENT_SCHEMAS: Record<string, z.ZodTypeAny> = {
-  'rent-agreement': z.object({
-    landlordName: z.string().min(2, "Landlord name is required"),
-    tenantName: z.string().min(2, "Tenant name is required"),
-    propertyAddress: z.string().min(5, "Property address is required"),
-    monthlyRent: z.string().regex(/^\d+$/, "Monthly rent must be a number"),
-    securityDeposit: z.string().regex(/^\d+$/, "Security deposit must be a number"),
-    tenurePeriod: z.string().regex(/^\d+$/, "Tenure period must be a number"),
-    startDate: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid start date" }),
-    city: z.string().min(2, "City is required"),
-    state: z.string().min(2, "State is required"),
-  }).catchall(z.string().optional()),
-};
 
 // GET /documents
 router.get('/', async (req: AuthRequest, res: Response) => {

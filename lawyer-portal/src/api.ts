@@ -27,6 +27,19 @@ export const lawyerApi = {
   acceptCase: (id: string) => api.patch(`/lawyer/cases/${id}/accept`),
   updateCaseStatus: (id: string, status: string) => api.patch(`/lawyer/cases/${id}/status`, { status }),
   getEarnings: () => api.get('/lawyer/earnings'),
+
+  // Document Requests
+  getDocumentRequests: () => api.get('/lawyer/document-requests'),
+  getDocumentRequest: (id: string) => api.get(`/lawyer/document-requests/${id}`),
+  acceptDocumentRequest: (id: string) => api.patch(`/lawyer/document-requests/${id}/accept`),
+  deliverDocumentRequest: (id: string, file: File, lawyerNotes: string) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('lawyerNotes', lawyerNotes);
+    return api.post(`/lawyer/document-requests/${id}/deliver`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 export default api;

@@ -6,6 +6,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import LawyerLayout from './components/LawyerLayout';
 import MyCases from './pages/MyCases';
 import Earnings from './pages/Earnings';
+import DocumentRequests from './pages/DocumentRequests';
 import { lawyerApi } from './api';
 
 const theme = createTheme({
@@ -218,6 +219,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<PrivateRoute><LawyerLayout /></PrivateRoute>}>
             <Route index element={<MyCases />} />
+            <Route path="document-cases" element={<DocumentRequests />} />
             <Route path="earnings" element={<Earnings />} />
             <Route path="profile" element={<div style={{ padding: '20px' }}><h3>My Profile (Upcoming)</h3></div>} />
           </Route>

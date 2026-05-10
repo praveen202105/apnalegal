@@ -1,7 +1,15 @@
 import jwt from 'jsonwebtoken';
 
-const ACCESS_SECRET = process.env.JWT_SECRET || 'access_secret_dev';
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'refresh_secret_dev';
+function requireSecret(name: string): string {
+  const value = process.env[name];
+  if (!value || value.length < 16) {
+    throw new Error(`${name} must be set to a non-empty value of at least 16 characters`);
+  }
+  return value;
+}
+
+const ACCESS_SECRET = requireSecret('JWT_SECRET');
+const REFRESH_SECRET = requireSecret('JWT_REFRESH_SECRET');
 
 export function signAccessToken(userId: string) {
   return jwt.sign({ userId }, ACCESS_SECRET, {

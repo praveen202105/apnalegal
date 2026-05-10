@@ -7,6 +7,7 @@ import AdminLayout from './components/AdminLayout';
 import DashboardOverview from './pages/DashboardOverview';
 import ConsultationQueue from './pages/ConsultationQueue';
 import LawyerManagement from './pages/LawyerManagement';
+import DocumentRequestQueue from './pages/DocumentRequestQueue';
 import { adminApi } from './api';
 
 const theme = createTheme({
@@ -220,6 +221,7 @@ export default function App() {
           <Route path="/" element={<PrivateRoute><AdminLayout /></PrivateRoute>}>
             <Route index element={<DashboardOverview />} />
             <Route path="requests" element={<ConsultationQueue />} />
+            <Route path="document-requests" element={<DocumentRequestQueue />} />
             <Route path="lawyers" element={<LawyerManagement />} />
             <Route path="finance" element={<div style={{ padding: '20px' }}><h3>Financial Analytics (Upcoming)</h3></div>} />
           </Route>

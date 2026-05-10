@@ -14,11 +14,12 @@ import {
   Avatar,
   ListItemButton
 } from '@mui/material';
-import { 
-  LayoutDashboard, 
-  ClipboardList, 
-  Users, 
-  Wallet, 
+import {
+  LayoutDashboard,
+  ClipboardList,
+  FileText,
+  Users,
+  Wallet,
   LogOut,
   Menu
 } from 'lucide-react';
@@ -33,7 +34,8 @@ export default function AdminLayout() {
 
   const menuItems = [
     { text: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/' },
-    { text: 'Requests', icon: <ClipboardList size={20} />, path: '/requests' },
+    { text: 'Consultations', icon: <ClipboardList size={20} />, path: '/requests' },
+    { text: 'Document Requests', icon: <FileText size={20} />, path: '/document-requests' },
     { text: 'Lawyers', icon: <Users size={20} />, path: '/lawyers' },
     { text: 'Finance', icon: <Wallet size={20} />, path: '/finance' },
   ];

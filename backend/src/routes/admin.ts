@@ -5,6 +5,7 @@ import { requireRole } from '../middleware/role';
 import ConsultationRequest from '../models/ConsultationRequest';
 import Lawyer from '../models/Lawyer';
 import User from '../models/User';
+import Notification from '../models/Notification';
 import bcrypt from 'bcryptjs';
 
 const router = Router();
@@ -103,6 +104,26 @@ router.post('/requests/:id/assign', async (req: AuthRequest, res: Response) => {
   // Update lawyer stats
   await Lawyer.findByIdAndUpdate(parsed.data.lawyerId, { $inc: { totalCases: 1 } });
 
+  // Notify both parties of the assignment
+  try {
+    if (lawyer.userId) {
+      await Notification.create({
+        userId: lawyer.userId,
+        type: 'consultation',
+        title: 'New consultation assigned',
+        message: `You've been assigned a new consultation in ${request.city}.`,
+      });
+    }
+    await Notification.create({
+      userId: request.userId,
+      type: 'consultation',
+      title: 'Lawyer assigned',
+      message: `${lawyer.name} has been assigned to your consultation request.`,
+    });
+  } catch (e) {
+    console.warn('assignment notify failed', e);
+  }
+
   res.json(request);
 });
 
@@ -164,18 +185,14 @@ router.post('/lawyers', async (req: AuthRequest, res: Response) => {
   const existing = await User.findOne({ email: parsed.data.email });
   if (existing) { res.status(409).json({ message: 'Email already registered' }); return; }
 
-  const hashedPassword = await bcrypt.hash(parsed.data.password, 10);
+  const passwordHash = await bcrypt.hash(parsed.data.password, 10);
   const user = await User.create({
     name: parsed.data.name,
     email: parsed.data.email,
     phone: parsed.data.phone,
     role: 'lawyer',
-    refreshToken: '',
+    passwordHash,
   });
-
-  // Store hashed password in refreshToken field temporarily — we need a passwordHash field
-  // Actually use a separate approach: store it properly
-  await User.findByIdAndUpdate(user._id, { refreshToken: '' });
 
   const lawyer = await Lawyer.create({
     userId: user._id,
@@ -193,9 +210,6 @@ router.post('/lawyers', async (req: AuthRequest, res: Response) => {
     commissionRate: parsed.data.commissionRate ?? 20,
     isVerified: false,
   });
-
-  // Store password hash on user (add passwordHash field temporarily via update)
-  await (user as unknown as { save: () => Promise<void> } & { passwordHash?: string }).save();
 
   res.status(201).json({ user: { id: user._id, name: user.name, email: user.email, role: user.role }, lawyer });
 });
