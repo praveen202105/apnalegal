@@ -207,6 +207,90 @@ router.post('/refresh', async (req: Request, res: Response) => {
   }
 });
 
+// POST /auth/register — create admin or lawyer account with email+password
+router.post('/register', async (req: Request, res: Response) => {
+  const schema = z.object({
+    name: z.string().min(2),
+    email: z.string().email(),
+    password: z.string().min(6),
+    role: z.enum(['admin', 'lawyer']),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ message: 'Invalid data', errors: parsed.error.format() });
+    return;
+  }
+
+  const { name, email, password, role } = parsed.data;
+
+  const existing = await User.findOne({ email });
+  if (existing) {
+    res.status(409).json({ message: 'Email already registered' });
+    return;
+  }
+
+  const bcrypt = await import('bcryptjs');
+  const passwordHash = await bcrypt.default.hash(password, 10);
+
+  const user = await User.create({ name, email, role, passwordHash });
+
+  const accessToken = signAccessToken(user._id.toString());
+  const refreshToken = signRefreshToken(user._id.toString());
+  user.refreshToken = refreshToken;
+  await user.save();
+
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  res.status(201).json({ accessToken, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+});
+
+// POST /auth/login-password — email+password login for admin/lawyer
+router.post('/login-password', async (req: Request, res: Response) => {
+  const schema = z.object({
+    email: z.string().email(),
+    password: z.string().min(1),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ message: 'Invalid email or password' });
+    return;
+  }
+
+  const { email, password } = parsed.data;
+
+  const user = await User.findOne({ email, role: { $in: ['admin', 'lawyer'] } });
+  if (!user || !user.passwordHash) {
+    res.status(401).json({ message: 'Invalid email or password' });
+    return;
+  }
+
+  const bcrypt = await import('bcryptjs');
+  const valid = await bcrypt.default.compare(password, user.passwordHash);
+  if (!valid) {
+    res.status(401).json({ message: 'Invalid email or password' });
+    return;
+  }
+
+  const accessToken = signAccessToken(user._id.toString());
+  const refreshToken = signRefreshToken(user._id.toString());
+  user.refreshToken = refreshToken;
+  await user.save();
+
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  res.json({ accessToken, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+});
+
 // POST /auth/logout
 router.post('/logout', authenticate, async (req: AuthRequest, res: Response) => {
   await User.findByIdAndUpdate(req.userId, { refreshToken: '' });

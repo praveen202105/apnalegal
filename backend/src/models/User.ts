@@ -5,6 +5,7 @@ export interface IUser extends Document {
   name: string;
   email: string;
   avatar: string;
+  passwordHash: string; // only for admin & lawyer accounts
   refreshToken: string;
   role: 'user' | 'lawyer' | 'admin';
   subscription: {
@@ -24,8 +25,9 @@ const UserSchema = new Schema<IUser>(
   {
     phone: { type: String, unique: true, sparse: true },
     name: { type: String, default: '' },
-    email: { type: String, default: '' },
+    email: { type: String, default: '', index: true },
     avatar: { type: String, default: '' },
+    passwordHash: { type: String, default: '' },
     refreshToken: { type: String, default: '' },
     role: { type: String, enum: ['user', 'lawyer', 'admin'], default: 'user' },
     subscription: {
