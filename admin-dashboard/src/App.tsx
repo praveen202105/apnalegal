@@ -43,6 +43,7 @@ function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [setupToken, setSetupToken] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -68,11 +69,12 @@ function Login() {
 
   const handleRegister = async () => {
     if (!name || !email || !password) { setError('Please fill all fields.'); return; }
+    if (!setupToken) { setError('Setup token is required to register as admin.'); return; }
     if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     setLoading(true); setError('');
     try {
-      const res = await adminApi.register({ name, email, password, role: 'admin' });
+      const res = await adminApi.register({ name, email, password, role: 'admin', setupToken });
       handleLoginSuccess(res.data.accessToken, res.data.user.role);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed.');
@@ -165,6 +167,16 @@ function Login() {
               placeholder="Confirm Password"
               value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
+              style={inputStyle}
+            />
+          )}
+          {mode === 'register' && (
+            <input
+              id="admin-setup-token"
+              type="password"
+              placeholder="Setup Token (required for admin signup)"
+              value={setupToken}
+              onChange={e => setSetupToken(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleRegister()}
               style={inputStyle}
             />

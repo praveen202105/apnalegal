@@ -36,12 +36,18 @@ const inputStyle: React.CSSProperties = {
   fontFamily: 'Inter, sans-serif',
 };
 
+const SPECIALTY_OPTIONS = ['Rent Agreement', 'Property Dispute', 'Consumer Complaint', 'Family Law', 'Criminal Defence', 'Labour Law', 'Corporate', 'Cyber Crime', 'Other'];
+
 function Login() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [city, setCity] = useState('');
+  const [specialties, setSpecialties] = useState<string[]>([]);
+  const [experience, setExperience] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -66,12 +72,20 @@ function Login() {
   };
 
   const handleRegister = async () => {
-    if (!name || !email || !password) { setError('Please fill all fields.'); return; }
+    if (!name || !email || !password) { setError('Please fill name, email and password.'); return; }
     if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    if (!phone || phone.length < 10) { setError('Enter a valid phone number.'); return; }
+    if (!city) { setError('Enter your primary city.'); return; }
+    if (specialties.length === 0) { setError('Pick at least one specialty.'); return; }
+    const yrs = Number(experience);
+    if (Number.isNaN(yrs) || yrs < 0) { setError('Enter your years of experience.'); return; }
     setLoading(true); setError('');
     try {
-      const res = await lawyerApi.register({ name, email, password, role: 'lawyer' });
+      const res = await lawyerApi.register({
+        name, email, password, role: 'lawyer',
+        phone, city, specialties, experience: yrs,
+      });
       handleLoginSuccess(res.data.accessToken, res.data.user.role);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed.');
@@ -164,9 +178,63 @@ function Login() {
               placeholder="Confirm Password"
               value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleRegister()}
               style={inputStyle}
             />
+          )}
+          {mode === 'register' && (
+            <>
+              <input
+                id="lawyer-phone"
+                type="tel"
+                placeholder="Phone (e.g. 9876543210)"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                style={inputStyle}
+              />
+              <input
+                id="lawyer-city"
+                placeholder="Primary City (e.g. Mumbai)"
+                value={city}
+                onChange={e => setCity(e.target.value)}
+                style={inputStyle}
+              />
+              <input
+                id="lawyer-experience"
+                type="number"
+                min={0}
+                placeholder="Years of Experience"
+                value={experience}
+                onChange={e => setExperience(e.target.value)}
+                style={inputStyle}
+              />
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '4px 0' }}>
+                {SPECIALTY_OPTIONS.map(s => {
+                  const on = specialties.includes(s);
+                  return (
+                    <button
+                      type="button"
+                      key={s}
+                      onClick={() => setSpecialties(prev => on ? prev.filter(x => x !== s) : [...prev, s])}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: 16,
+                        border: '1px solid ' + (on ? '#002B5B' : '#ddd'),
+                        background: on ? '#002B5B' : 'white',
+                        color: on ? 'white' : '#333',
+                        cursor: 'pointer',
+                        fontSize: '0.78rem',
+                        fontFamily: 'Inter, sans-serif',
+                      }}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
+              <p style={{ fontSize: '0.7rem', color: '#888', margin: '0 0 8px', lineHeight: 1.4 }}>
+                After registering, an admin will verify your profile before you start receiving cases.
+              </p>
+            </>
           )}
           <button
             id="lawyer-submit-btn"

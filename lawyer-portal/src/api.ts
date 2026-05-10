@@ -19,7 +19,19 @@ export const lawyerApi = {
   login: (phone: string, otp: string) => api.post('/auth/verify-otp', { phone, otp }),
   googleLogin: (token: string) => api.post('/auth/google', { googleToken: token }),
   loginPassword: (email: string, password: string) => api.post('/auth/login-password', { email, password }),
-  register: (data: { name: string; email: string; password: string; role: 'lawyer' }) => api.post('/auth/register', data),
+  register: (data: {
+    name: string;
+    email: string;
+    password: string;
+    role: 'lawyer';
+    phone: string;
+    city: string;
+    state?: string;
+    specialties: string[];
+    experience: number;
+    bio?: string;
+    pricePerCase?: number;
+  }) => api.post('/auth/register', data),
   getProfile: () => api.get('/lawyer/profile'),
   updateAvailability: (isAvailable: boolean) => api.patch('/lawyer/availability', { isAvailable }),
   getCases: () => api.get('/lawyer/cases'),

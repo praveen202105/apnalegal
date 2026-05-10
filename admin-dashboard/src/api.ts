@@ -19,7 +19,7 @@ export const adminApi = {
   login: (phone: string, otp: string) => api.post('/auth/verify-otp', { phone, otp }),
   googleLogin: (token: string) => api.post('/auth/google', { googleToken: token }),
   loginPassword: (email: string, password: string) => api.post('/auth/login-password', { email, password }),
-  register: (data: { name: string; email: string; password: string; role: 'admin' | 'lawyer' }) => api.post('/auth/register', data),
+  register: (data: { name: string; email: string; password: string; role: 'admin'; setupToken: string }) => api.post('/auth/register', data),
   getAnalytics: () => api.get('/admin/analytics'),
   getRequests: (status?: string) => api.get(`/admin/requests${status ? `?status=${status}` : ''}`),
   assignLawyer: (requestId: string, data: { lawyerId: string; lawyerFee: number; commissionRate?: number; adminNotes?: string }) => 
