@@ -26,6 +26,22 @@ function formatDocType(type: string) {
   return type.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
+const ALLOWED_PREVIEW_KEYS: Record<string, string[]> = {
+  'rent-agreement': [
+    'landlordName', 'landlordAddress', 'landlordDocType', 'landlordDocNumber',
+    'tenantName', 'tenantAddress', 'tenantDocType', 'tenantDocNumber', 'tenantOccupation',
+    'propertyAddress', 'propertyType', 'propertyArea', 'furnished', 'monthlyRent',
+    'securityDeposit', 'maintenanceCharges', 'utilitiesIncluded', 'pincode', 'city', 'state',
+    'tenurePeriod', 'startDate', 'lockInPeriod', 'noticePeriod', 'lateFee', 'petsAllowed',
+    'sublettingAllowed', 'stampDutyOption', 'stampDutyAmount', 'witness1Name', 'witness1Address',
+    'witness2Name', 'witness2Address', 'place', 'agreementDate'
+  ],
+  'affidavit': ['deponentName', 'fatherName', 'age', 'occupation', 'address', 'purpose', 'statement', 'city', 'state'],
+  'legal-notice': ['senderName', 'senderAddress', 'senderPhone', 'senderEmail', 'recipientName', 'recipientAddress', 'subject', 'description', 'demandAmount', 'deadline'],
+  'consumer-complaint': ['complainantName', 'complainantAddress', 'phone', 'email', 'companyName', 'companyAddress', 'productService', 'purchaseDate', 'amount', 'defectDescription', 'reliefSought'],
+  'fir-help': ['incidentType', 'incidentDate', 'incidentTime', 'incidentPlace', 'victimName', 'victimAddress', 'phone', 'accusedName', 'accusedAddress', 'description', 'witnesses', 'evidence'],
+};
+
 export default function DocumentPreview() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -181,7 +197,10 @@ export default function DocumentPreview() {
                   <Typography variant="h6" align="center" sx={{ mb: 3, fontWeight: 700 }}>
                     {formatDocType(doc.type).toUpperCase()}
                   </Typography>
-                  {Object.entries(formData).map(([key, value]) => {
+                  {(
+                    ALLOWED_PREVIEW_KEYS[doc.type] ?? Object.keys(formData)
+                  ).map((key) => {
+                    const value = formData[key];
                     if (!value) return null;
                     const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
                     const displayValue = key.toLowerCase().includes('rent') || key.toLowerCase().includes('amount') || key.toLowerCase().includes('deposit')

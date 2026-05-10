@@ -757,6 +757,17 @@ function getDocConfig(type: string | undefined): DocConfig {
   }
 }
 
+function filterFormDataForType(type: string | undefined, formData: FormData): FormData {
+  const config = getDocConfig(type);
+  const allowedKeys = new Set(Object.keys(config.defaultFormData));
+  return Object.entries(formData).reduce<FormData>((acc, [key, value]) => {
+    if (allowedKeys.has(key)) {
+      acc[key] = value;
+    }
+    return acc;
+  }, {});
+}
+
 export default function LegalWorkflow() {
   const navigate = useNavigate();
   const { type } = useParams();
@@ -773,6 +784,11 @@ export default function LegalWorkflow() {
   const [formData, setFormData] = useState<FormData>(config.defaultFormData);
   const [pincodeMessage, setPincodeMessage] = useState('');
   const [cityOptions, setCityOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    setFormData(getDocConfig(type).defaultFormData);
+    setActiveStep(0);
+  }, [type]);
 
   useEffect(() => {
     const pin = (formData.pincode ?? '').trim();
@@ -935,7 +951,8 @@ export default function LegalWorkflow() {
 
   const handleSaveDraft = async () => {
     try {
-      await createDocument(type || 'unknown', formData);
+      const filtered = filterFormDataForType(type, formData);
+      await createDocument(type || 'unknown', filtered);
       setSnackbar({ open: true, message: 'Draft saved successfully' });
     } catch {
       setSnackbar({ open: true, message: 'Failed to save draft' });
@@ -947,7 +964,8 @@ export default function LegalWorkflow() {
     setGenerating(true);
     setError('');
     try {
-      const doc = await createDocument(type || 'unknown', formData);
+      const filtered = filterFormDataForType(type, formData);
+      const doc = await createDocument(type || 'unknown', filtered);
       const result = await generateDocument(doc._id);
       navigate(`/document/${result.document._id}`);
     } catch (err: unknown) {
@@ -961,7 +979,8 @@ export default function LegalWorkflow() {
     setGenerating(true);
     setError('');
     try {
-      const doc = await createDocument(type || 'unknown', formData);
+      const filtered = filterFormDataForType(type, formData);
+      const doc = await createDocument(type || 'unknown', filtered);
       navigate(`/document/${doc._id}`);
     } catch {
       setError('Failed to create preview. Please try again.');
